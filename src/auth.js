@@ -79,3 +79,8 @@ export function getAuthHeader() {
   if (staff) return `Bearer ${staff.token}`
   return null // player sessions use cookies automatically
 }
+
+export function onUserChange(callback) {
+  getPlayerSession().then(user => callback(user));
+  return () => {};
+}
