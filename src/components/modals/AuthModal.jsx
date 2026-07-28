@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { apiFetch } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -9,19 +9,81 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+
   const { checkAuth } = useAuth();
+  
+  const turnstileRef = useRef(null);
+  const turnstileWidgetId = useRef(null);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const googleBtnRef = useRef(null);
+
+  // --- Cloudflare Turnstile Integration ---
+  useEffect(() => {
+    if (window.turnstile && turnstileRef.current) {
+      // Clear previous widget if tab switches
+      if (turnstileWidgetId.current !== null) {
+        window.turnstile.remove(turnstileWidgetId.current);
+      }
+
+      turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
+        sitekey: '0x4AAAAAADWtJVafyNps0ZGt',
+        callback: (token) => setTurnstileToken(token),
+      });
+    }
+
+    return () => {
+      if (window.turnstile && turnstileWidgetId.current !== null) {
+        window.turnstile.remove(turnstileWidgetId.current);
+      }
+    };
+  }, [tab]);
+
+  // --- Google Sign-In Integration ---
+  useEffect(() => {
+    if (window.google?.accounts?.id && googleBtnRef.current) {
+      window.google.accounts.id.initialize({
+        client_id: '728778108784-c0t5fjar4nhm33dk8oq5bakp1uo5lbe0.apps.googleusercontent.com',
+        callback: handleGoogleCallback,
+      });
+
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'filled_black',
+        size: 'large',
+      });
+    }
+  }, []);
+
+  const handleGoogleCallback = async (response) => {
+    try {
+      await apiFetch('/api/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ idToken: response.credential })
+      });
+      await checkAuth();
+      onClose();
+    } catch (err) {
+      alert('Google auth failed: ' + err.message);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       await apiFetch('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email: loginEmail, password: loginPassword })
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+          turnstileToken
+        })
       });
       await checkAuth();
       onClose();
     } catch (err) {
       alert(err.message);
+      if (window.turnstile && turnstileWidgetId.current !== null) {
+        window.turnstile.reset(turnstileWidgetId.current);
+      }
     }
   };
 
@@ -30,7 +92,12 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
     try {
       const res = await apiFetch('/api/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ username: regUsername, email: regEmail, password: regPassword })
+        body: JSON.stringify({
+          username: regUsername,
+          email: regEmail,
+          password: regPassword,
+          turnstileToken
+        })
       });
       alert(res.message || 'Registration successful! A verification link has been sent to your email.');
       setTab('login');
@@ -38,6 +105,9 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
       setLoginPassword(regPassword);
     } catch (err) {
       alert(err.message);
+      if (window.turnstile && turnstileWidgetId.current !== null) {
+        window.turnstile.reset(turnstileWidgetId.current);
+      }
     }
   };
 
@@ -63,6 +133,10 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
               <label>Password</label>
               <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
             </div>
+
+            {/* Turnstile Container */}
+            <div ref={turnstileRef} style={{ marginBottom: '1rem' }}></div>
+
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
               <i className="fa-solid fa-right-to-bracket"></i> Log In
             </button>
@@ -81,11 +155,22 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
               <label>Password</label>
               <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required />
             </div>
+
+            {/* Turnstile Container */}
+            <div ref={turnstileRef} style={{ marginBottom: '1rem' }}></div>
+
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
               <i className="fa-solid fa-user-check"></i> Create Account
             </button>
           </form>
         )}
+
+        <div className="divider"></div>
+
+        {/* Google Button Wrapper */}
+        <div className="google-btn-wrapper">
+          <div ref={googleBtnRef}></div>
+        </div>
 
         <button type="button" className="btn btn-sm" style={{ width: '100%', marginTop: '1rem' }} onClick={onClose}>
           Close
