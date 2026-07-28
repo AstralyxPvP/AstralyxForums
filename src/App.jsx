@@ -1,81 +1,122 @@
-import React, { useState, useEffect, createContext, useContext } from 'react'
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
-import { onUserChange, getStaffSession, saveStaffToken, clearStaffSession, signOut } from './auth.js'
-import Navbar from './components/Navbar.jsx'
-import ForumList from './components/ForumList.jsx'
-import ThreadView from './components/ThreadView.jsx'
-import AuthModal from './components/AuthModal.jsx'
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import CategoriesPage from './pages/CategoriesPage';
+import SubcategoryPage from './pages/SubcategoryPage';
+import ThreadDetailPage from './pages/ThreadDetailPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import AuthModal from './components/modals/AuthModal';
+import ProfileModal from './components/modals/ProfileModal';
+import StaffModal from './components/modals/StaffModal';
+import ReportModal from './components/modals/ReportModal';
+import EditPostModal from './components/modals/EditPostModal';
+import { CreateCategoryModal, CreateSubcategoryModal, CreateThreadModal } from './components/modals/CreateModals';
+import './App.css';
 
-// ── Global Auth Context ──────────────────────────────────────────────────────
-export const AuthCtx = createContext(null)
-export function useAuth() { return useContext(AuthCtx) }
+function MainLayout() {
+  const { currentUser, logout, isStaff } = useAuth();
+  const [activeModal, setActiveModal] = useState(null); // 'auth', 'profile', 'staff', 'report', 'edit', 'category', 'subcategory', 'thread'
+  const [modalData, setModalData] = useState({});
 
-export default function App() {
-  const [firebaseUser, setFirebaseUser] = useState(undefined) // undefined = loading
-  const [staffSession, setStaffSession] = useState(null)
-  const [showAuth, setShowAuth] = useState(false)
-  const navigate = useNavigate()
-  const location = useLocation()
-
-  // Handle Discord OAuth callback token in URL
-  useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    const token = params.get('token')
-    const error = params.get('error')
-    if (token || error) {
-      window.history.replaceState({}, '', location.pathname)
-      if (token) {
-        saveStaffToken(token)
-        setStaffSession(getStaffSession())
-      }
-      if (error) {
-        const msgs = {
-          not_staff: 'You are not a staff member on AstralyxPvP.',
-          token_failed: 'Discord auth failed. Try again.',
-          server_error: 'Server error during login.',
-        }
-        alert(msgs[error] || `Login error: ${error}`)
-      }
-    } else {
-      setStaffSession(getStaffSession())
-    }
-  }, [])
-
-  // Firebase auth listener
-  useEffect(() => {
-    const unsub = onUserChange(user => setFirebaseUser(user))
-    return unsub
-  }, [])
-
-  const loading = firebaseUser === undefined
-
-  // Merged user object for consumers
-  const user = staffSession
-    ? { uid: staffSession.userId, displayName: staffSession.username, avatar: staffSession.avatar, role: staffSession.role, isStaff: true, isPlayer: false }
-    : firebaseUser
-      ? { uid: firebaseUser.uid, displayName: firebaseUser.displayName || firebaseUser.email.split('@')[0], avatar: null, role: 'Player', isStaff: false, isPlayer: true }
-      : null
-
-  const logout = async () => {
-    clearStaffSession()
-    setStaffSession(null)
-    await signOut()
+  if (currentUser && !currentUser.emailVerified) {
+    return <VerifyEmailPage />;
   }
 
   return (
-    <AuthCtx.Provider value={{ user, loading, logout, openAuth: () => setShowAuth(true) }}>
-      <div className="page-enter">
-        <Navbar />
-        <main className="page-content">
-          <div className="wrap">
-            <Routes>
-              <Route path="/"           element={<ForumList />} />
-              <Route path="/thread/:id" element={<ThreadView />} />
-            </Routes>
-          </div>
-        </main>
+    <div className="app-container">
+      {/* NAVBAR */}
+      <header className="navbar">
+        <Link to="/" className="brand">
+          <i className="fa-solid fa-planet"></i> <span>ASTRAL</span>FORUM
+        </Link>
+        <div className="nav-actions">
+          {currentUser ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+              {isStaff() && (
+                <button className="btn btn-warning btn-sm" onClick={() => setActiveModal('staff')}>
+                  <i className="fa-solid fa-user-shield"></i> Staff Panel
+                </button>
+              )}
+              <img
+                className="avatar"
+                style={{ width: '38px', height: '38px', cursor: 'pointer' }}
+                src={currentUser.avatarUrl || 'https://via.placeholder.com/38'}
+                onClick={() => setActiveModal('profile')}
+                alt="avatar"
+              />
+              <div style={{ cursor: 'pointer' }} onClick={() => setActiveModal('profile')}>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{currentUser.displayName}</div>
+                <span className={`role-badge role-${currentUser.role}`}>{currentUser.roleTag || currentUser.role}</span>
+              </div>
+              <button className="btn btn-sm" onClick={() => setActiveModal('profile')}>
+                <i className="fa-solid fa-gear"></i>
+              </button>
+              <button className="btn btn-sm btn-danger" onClick={logout}>
+                <i className="fa-solid fa-right-from-bracket"></i>
+              </button>
+            </div>
+          ) : (
+            <>
+              <button className="btn" onClick={() => { setModalData({ tab: 'login' }); setActiveModal('auth'); }}>
+                <i className="fa-solid fa-right-to-bracket"></i> Log In
+              </button>
+              <button className="btn btn-primary" onClick={() => { setModalData({ tab: 'register' }); setActiveModal('auth'); }}>
+                <i className="fa-solid fa-user-plus"></i> Register
+              </button>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* HERO BANNER */}
+      <div className="hero">
+        <h1><i className="fa-solid fa-comments"></i> Welcome to AstralForum</h1>
+        <p>Join community discussions, check updates, and connect with players.</p>
       </div>
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onStaffLogin={() => { setShowAuth(false) }} />}
-    </AuthCtx.Provider>
-  )
+
+      {/* ROUTED CONTENT */}
+      <div className="container">
+        <Routes>
+          <Route path="/" element={
+            <CategoriesPage
+              onOpenCategoryModal={() => setActiveModal('category')}
+              onOpenSubcategoryModal={(catId) => { setModalData({ parentCatId: catId }); setActiveModal('subcategory'); }}
+            />
+          } />
+          <Route path="/forum/:subcategoryId" element={
+            <SubcategoryPage
+              onOpenThreadModal={(subId) => { setModalData({ subcategoryId: subId }); setActiveModal('thread'); }}
+            />
+          } />
+          <Route path="/thread/:threadId" element={
+            <ThreadDetailPage
+              onOpenEditModal={(threadId, postId, content) => { setModalData({ threadId, postId, content }); setActiveModal('edit'); }}
+              onOpenReportModal={(threadId, postId) => { setModalData({ threadId, postId }); setActiveModal('report'); }}
+            />
+          } />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+
+      {/* MODALS */}
+      {activeModal === 'auth' && <AuthModal initialTab={modalData.tab} onClose={() => setActiveModal(null)} />}
+      {activeModal === 'profile' && <ProfileModal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'staff' && <StaffModal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'report' && <ReportModal data={modalData} onClose={() => setActiveModal(null)} />}
+      {activeModal === 'edit' && <EditPostModal data={modalData} onClose={() => setActiveModal(null)} />}
+      {activeModal === 'category' && <CreateCategoryModal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'subcategory' && <CreateSubcategoryModal parentCategoryId={modalData.parentCatId} onClose={() => setActiveModal(null)} />}
+      {activeModal === 'thread' && <CreateThreadModal subcategoryId={modalData.subcategoryId} onClose={() => setActiveModal(null)} />}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <MainLayout />
+      </AuthProvider>
+    </BrowserRouter>
+  );
 }
