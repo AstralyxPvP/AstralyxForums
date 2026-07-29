@@ -3,49 +3,62 @@ import React, { useEffect, useRef } from 'react';
 
 const TURNSTILE_SITE_KEY = '0x4AAAAAADWtJVafyNps0ZGt';
 
-const Turnstile = ({ onVerify, onExpire }) => {
+export default function Turnstile({ onVerify, onExpire }) {
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
 
   useEffect(() => {
-    let timeoutId;
+    let isMounted = true;
+    let intervalId = null;
 
-    const renderTurnstile = () => {
-      if (window.turnstile && containerRef.current) {
-        // Clean up existing widget if re-rendering
-        if (widgetIdRef.current !== null) {
-          try {
-            window.turnstile.remove(widgetIdRef.current);
-          } catch (e) {
-            // ignore
-          }
+    const renderWidget = () => {
+      if (!isMounted || !containerRef.current || !window.turnstile) return;
+
+      // Clean up previous widget instance if tab switched
+      if (widgetIdRef.current !== null) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch (e) {
+          // ignore
         }
+      }
 
-        containerRef.current.innerHTML = '';
+      containerRef.current.innerHTML = '';
 
-        // Render widget explicitly
+      try {
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
+          theme: 'dark', // Matches dark mode UI
           callback: (token) => {
-            if (onVerify) onVerify(token);
+            if (isMounted && onVerify) onVerify(token);
           },
           'expired-callback': () => {
-            if (onExpire) onExpire();
+            if (isMounted && onExpire) onExpire();
           },
           'error-callback': () => {
-            if (onExpire) onExpire();
+            if (isMounted && onExpire) onExpire();
           }
         });
-      } else {
-        // Retry shortly if Turnstile JS hasn't loaded yet
-        timeoutId = setTimeout(renderTurnstile, 150);
+      } catch (err) {
+        console.error('Turnstile render error:', err);
       }
     };
 
-    renderTurnstile();
+    if (window.turnstile) {
+      renderWidget();
+    } else {
+      // Poll every 100ms until Cloudflare script is ready
+      intervalId = setInterval(() => {
+        if (window.turnstile) {
+          clearInterval(intervalId);
+          renderWidget();
+        }
+      }, 100);
+    }
 
     return () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      isMounted = false;
+      if (intervalId) clearInterval(intervalId);
       if (window.turnstile && widgetIdRef.current !== null) {
         try {
           window.turnstile.remove(widgetIdRef.current);
@@ -54,9 +67,17 @@ const Turnstile = ({ onVerify, onExpire }) => {
         }
       }
     };
-  }, []);
+  }, [onVerify, onExpire]);
 
-  return <div ref={containerRef} style={{ marginBottom: '1rem' }} />;
-};
-
-export default Turnstile;
+  return (
+    <div 
+      ref={containerRef} 
+      style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        margin: '1rem 0',
+        minHeight: '65px' 
+      }} 
+    />
+  );
+}
