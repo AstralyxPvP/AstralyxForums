@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { marked } from 'marked';
-import { apiFetch, SITE_ORIGIN, canModerateRole } from '../api';
+import { apiFetch, SITE_ORIGIN, canModerateRole, formatAuthorName } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { Avatar } from '../components/Avatar';
 import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { EditPostModal } from '../components/modals/EditPostModal';
 import { ReportModal } from '../components/modals/ReportModal';
@@ -83,6 +84,8 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
   if (!threadData) return <p style={{ color: 'var(--accent-danger)' }}>Thread not found.</p>;
 
   const displayTitle = threadData.title || title;
+  const mainAuthorName = formatAuthorName(threadData.authorName);
+
   const canDeleteMain = currentUser && (
     currentUser.id === threadData.authorId ||
     ((currentUser.permissions?.delete || currentUser.permissions?.full || canManageCategories()) && canModerateRole(currentUser.roleTag, threadData.authorRoleTag))
@@ -117,8 +120,8 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
       {/* Main Thread Post */}
       <div className="post-card main-post">
         <div className="post-author">
-          <img className="avatar" src={threadData.authorAvatar || 'https://via.placeholder.com/56'} alt="avatar" />
-          <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{threadData.authorName}</div>
+          <Avatar src={threadData.authorAvatar} name={mainAuthorName} size={56} />
+          <div style={{ fontWeight: 700, fontSize: '0.95rem', marginTop: '0.4rem' }}>{mainAuthorName}</div>
           <span className={`role-badge role-${threadData.authorRole}`} style={{ marginTop: '0.4rem' }}>
             {threadData.authorRoleTag || threadData.authorRole}
           </span>
@@ -162,6 +165,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>No comments yet.</p>
       ) : (
         posts.map((p) => {
+          const commentAuthorName = formatAuthorName(p.authorName);
           const isAuthor = currentUser && p.authorId === currentUser.id;
           const canDelete = currentUser && (
             isAuthor ||
@@ -172,8 +176,8 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
           return (
             <div key={p.id} className="post-card">
               <div className="post-author">
-                <img className="avatar" src={p.authorAvatar || 'https://via.placeholder.com/56'} alt="avatar" />
-                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{p.authorName}</div>
+                <Avatar src={p.authorAvatar} name={commentAuthorName} size={56} />
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', marginTop: '0.4rem' }}>{commentAuthorName}</div>
                 <span className={`role-badge role-${p.authorRole}`} style={{ marginTop: '0.4rem' }}>
                   {p.authorRoleTag || p.authorRole}
                 </span>
