@@ -1,113 +1,60 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 
-export default function AuthModal({ initialTab = 'login', onClose }) {
-  const [tab, setTab] = useState(initialTab);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [regUsername, setRegUsername] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regPassword, setRegPassword] = useState('');
-
+export const AuthModal = ({ isOpen, initialTab = 'login', onClose }) => {
   const { checkAuth } = useAuth();
-  
-  const turnstileRef = useRef(null);
-  const turnstileWidgetId = useRef(null);
-  const [turnstileToken, setTurnstileToken] = useState('');
-  const googleBtnRef = useRef(null);
+  const [tab, setTab] = useState(initialTab);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
 
-  // --- Cloudflare Turnstile Integration ---
   useEffect(() => {
-    if (window.turnstile && turnstileRef.current) {
-      // Clear previous widget if tab switches
-      if (turnstileWidgetId.current !== null) {
-        window.turnstile.remove(turnstileWidgetId.current);
-      }
+    setTab(initialTab);
+  }, [initialTab]);
 
-      turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
-        sitekey: '0x4AAAAAADWtJVafyNps0ZGt',
-        callback: (token) => setTurnstileToken(token),
-      });
-    }
-
-    return () => {
-      if (window.turnstile && turnstileWidgetId.current !== null) {
-        window.turnstile.remove(turnstileWidgetId.current);
+  // Expose Google Callback Globally for GSI
+  useEffect(() => {
+    window.handleGoogleCallback = async (response) => {
+      try {
+        await apiFetch('/api/auth/google', {
+          method: 'POST',
+          body: JSON.stringify({ idToken: response.credential })
+        });
+        await checkAuth();
+        onClose();
+      } catch (err) {
+        alert('Google auth failed: ' + err.message);
       }
     };
-  }, [tab]);
+  }, [checkAuth, onClose]);
 
-  // --- Google Sign-In Integration ---
-  useEffect(() => {
-    if (window.google?.accounts?.id && googleBtnRef.current) {
-      window.google.accounts.id.initialize({
-        client_id: '728778108784-c0t5fjar4nhm33dk8oq5bakp1uo5lbe0.apps.googleusercontent.com',
-        callback: handleGoogleCallback,
-      });
+  if (!isOpen) return null;
 
-      window.google.accounts.id.renderButton(googleBtnRef.current, {
-        theme: 'filled_black',
-        size: 'large',
-      });
-    }
-  }, []);
-
-  const handleGoogleCallback = async (response) => {
-    try {
-      await apiFetch('/api/auth/google', {
-        method: 'POST',
-        body: JSON.stringify({ idToken: response.credential })
-      });
-      await checkAuth();
-      onClose();
-    } catch (err) {
-      alert('Google auth failed: ' + err.message);
-    }
-  };
-
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const turnstileInput = e.target.querySelector('[name="cf-turnstile-response"]');
+    const turnstileToken = turnstileInput ? turnstileInput.value : '';
+
+    const endpoint = tab === 'login' ? '/api/auth/login' : '/api/auth/register';
+    const body = tab === 'login'
+      ? { email, password, turnstileToken }
+      : { username, email, password, turnstileToken };
+
     try {
-      await apiFetch('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: loginEmail,
-          password: loginPassword,
-          turnstileToken
-        })
-      });
+      const res = await apiFetch(endpoint, { method: 'POST', body: JSON.stringify(body) });
+
+      if (tab === 'register') {
+        alert(res.message || 'Registration successful! Verification email sent.');
+        setTab('login');
+        return;
+      }
+
       await checkAuth();
       onClose();
     } catch (err) {
       alert(err.message);
-      if (window.turnstile && turnstileWidgetId.current !== null) {
-        window.turnstile.reset(turnstileWidgetId.current);
-      }
-    }
-  };
-
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await apiFetch('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          username: regUsername,
-          email: regEmail,
-          password: regPassword,
-          turnstileToken
-        })
-      });
-      alert(res.message || 'Registration successful! A verification link has been sent to your email.');
-      setTab('login');
-      setLoginEmail(regEmail);
-      setLoginPassword(regPassword);
-    } catch (err) {
-      alert(err.message);
-      if (window.turnstile && turnstileWidgetId.current !== null) {
-        window.turnstile.reset(turnstileWidgetId.current);
-      }
+      if (window.turnstile) window.turnstile.reset();
     }
   };
 
@@ -124,41 +71,35 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
         </div>
 
         {tab === 'login' ? (
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Email Address</label>
-              <input type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="form-group">
               <label>Password</label>
-              <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-
-            {/* Turnstile Container */}
-            <div ref={turnstileRef} style={{ marginBottom: '1rem' }}></div>
-
+            <div className="cf-turnstile" data-sitekey="0x4AAAAAADWtJVafyNps0ZGt" style={{ marginBottom: '1rem' }}></div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
               <i className="fa-solid fa-right-to-bracket"></i> Log In
             </button>
           </form>
         ) : (
-          <form onSubmit={handleRegister}>
+          <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Username</label>
-              <input type="text" value={regUsername} onChange={(e) => setRegUsername(e.target.value)} required />
+              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
             </div>
             <div className="form-group">
               <label>Email Address</label>
-              <input type="email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} required />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="form-group">
               <label>Password</label>
-              <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-
-            {/* Turnstile Container */}
-            <div ref={turnstileRef} style={{ marginBottom: '1rem' }}></div>
-
+            <div className="cf-turnstile" data-sitekey="0x4AAAAAADWtJVafyNps0ZGt" style={{ marginBottom: '1rem' }}></div>
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
               <i className="fa-solid fa-user-check"></i> Create Account
             </button>
@@ -167,9 +108,14 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
 
         <div className="divider"></div>
 
-        {/* Google Button Wrapper */}
         <div className="google-btn-wrapper">
-          <div ref={googleBtnRef}></div>
+          <div
+            id="g_id_onload"
+            data-client_id="728778108784-c0t5fjar4nhm33dk8oq5bakp1uo5lbe0.apps.googleusercontent.com"
+            data-callback="handleGoogleCallback"
+            data-auto_prompt="false"
+          ></div>
+          <div className="g_id_signin" data-type="standard" data-theme="filled_black" data-size="large"></div>
         </div>
 
         <button type="button" className="btn btn-sm" style={{ width: '100%', marginTop: '1rem' }} onClick={onClose}>
@@ -178,4 +124,4 @@ export default function AuthModal({ initialTab = 'login', onClose }) {
       </div>
     </div>
   );
-}
+};
