@@ -69,16 +69,19 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
       ) : (
         threads.map((t) => (
           <div key={t.id} className="thread-item" onClick={() => onSelectThread(t.id, t.title)}>
-            <div>
-              <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.3rem' }}>
-                {t.isLocked && <i className="fa-solid fa-lock" style={{ color: 'var(--accent-gold)' }}></i>}{' '}
-                {t.title}
+            <div style={{ width: '100%' }}>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {t.isLocked && <i className="fa-solid fa-lock" style={{ color: 'var(--accent-gold)' }}></i>}
+                <span>{t.title}</span>
               </h4>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Started by <strong>{formatAuthorName(t.authorName)}</strong> • {new Date(t.createdAt).toLocaleDateString()}
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <span>Started by <strong>{formatAuthorName(t.authorName)}</strong></span>
+                <span className={`role-badge role-${t.authorRole}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}>
+                  {t.authorRoleTag || t.authorRole}
+                </span>
+                <span>• {new Date(t.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
-            <span className={`role-badge role-${t.authorRole}`}>{t.authorRoleTag || t.authorRole}</span>
           </div>
         ))
       )}
