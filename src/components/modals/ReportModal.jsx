@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../../api';
 
-export default function ReportModal({ data, onClose }) {
+export const ReportModal = ({ isOpen, threadId, postId, onClose }) => {
   const [reason, setReason] = useState('');
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await apiFetch('/api/reports', {
         method: 'POST',
-        body: JSON.stringify({ threadId: data.threadId, postId: data.postId, reason })
+        body: JSON.stringify({ threadId, postId, reason })
       });
       alert('Report submitted to staff team.');
+      setReason('');
       onClose();
     } catch (err) {
       alert(err.message);
@@ -21,17 +24,11 @@ export default function ReportModal({ data, onClose }) {
   return (
     <div className="modal-overlay">
       <div className="modal">
-        <h2><i className="fa-solid fa-triangle-exclamation"></i> Report Content</h2>
+        <h2><i className="fa-solid fa-triangle-exclamation"></i> Report Post</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Reason for reporting</label>
-            <textarea
-              rows="4"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Explain why this content violates guidelines..."
-              required
-            />
+            <textarea rows="4" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Explain violation..." required></textarea>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
             <button type="button" className="btn" onClick={onClose}>Cancel</button>
@@ -41,4 +38,4 @@ export default function ReportModal({ data, onClose }) {
       </div>
     </div>
   );
-}
+};
