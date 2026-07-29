@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch, SITE_ORIGIN } from '../api';
+import { apiFetch, SITE_ORIGIN, formatAuthorName } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { CreateThreadModal } from '../components/modals/CreateModals';
 
@@ -17,7 +17,6 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
         const data = await apiFetch(`/api/subcategories/${subcategory.id}/threads`);
         setThreads(data);
 
-        // If visited directly via link without pre-stored name
         if (!subcatName && data.length > 0) {
           setSubcatName('Discussion Board');
         }
@@ -76,7 +75,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
                 {t.title}
               </h4>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Started by <strong>{t.authorName}</strong> • {new Date(t.createdAt).toLocaleDateString()}
+                Started by <strong>{formatAuthorName(t.authorName)}</strong> • {new Date(t.createdAt).toLocaleDateString()}
               </div>
             </div>
             <span className={`role-badge role-${t.authorRole}`}>{t.authorRoleTag || t.authorRole}</span>
