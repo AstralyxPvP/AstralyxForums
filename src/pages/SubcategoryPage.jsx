@@ -36,20 +36,33 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
     alert('Section permalink copied to clipboard!');
   };
 
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontFamily: 'var(--font-code)', fontSize: '0.85rem' }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--accent-gold)', marginRight: '0.5rem' }}></i> Loading threads...
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="breadcrumb">
-        <span onClick={onBack}><i className="fa-solid fa-house"></i> Forums</span> &gt; <span>{subcatName || 'Subcategory'}</span>
+        <span onClick={onBack} style={{ cursor: 'pointer' }}>
+          <i className="fa-solid fa-house"></i> Forums
+        </span>{' '}
+        &gt; <span>{subcatName || 'Subcategory'}</span>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2>{subcatName || 'Subcategory'}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
+          {subcatName || 'Subcategory'}
+        </h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn-sm" onClick={handleCopyShareLink} title="Share Link">
             <i className="fa-solid fa-share-nodes"></i> Share
           </button>
           {currentUser && !currentUser.isMuted && (
-            <button className="btn btn-primary" onClick={() => setIsThreadModalOpen(true)}>
+            <button className="btn btn-primary btn-sm" onClick={() => setIsThreadModalOpen(true)}>
               <i className="fa-solid fa-plus"></i> New Thread
             </button>
           )}
@@ -57,26 +70,69 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
       </div>
 
       {currentUser && currentUser.isMuted && (
-        <div className="mute-notice">
-          <i className="fa-solid fa-volume-xmark"></i> Your account is currently <strong>muted</strong>. Thread creation is disabled. {currentUser.muteReason ? `Reason: ${currentUser.muteReason}` : ''}
+        <div
+          className="mute-notice"
+          style={{
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid var(--accent-red)',
+            borderRadius: 'var(--r-md)',
+            padding: '0.85rem 1.1rem',
+            marginBottom: '1.5rem',
+            color: 'var(--accent-danger)',
+            fontFamily: 'var(--font-code)',
+            fontSize: '0.82rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem'
+          }}
+        >
+          <i className="fa-solid fa-volume-xmark" style={{ fontSize: '1rem' }}></i>
+          <span>
+            Your account is currently <strong>muted</strong>. Thread creation is disabled. {currentUser.muteReason ? `Reason: ${currentUser.muteReason}` : ''}
+          </span>
         </div>
       )}
 
-      {loading ? (
-        <p style={{ color: 'var(--text-muted)' }}><i className="fa-solid fa-spinner fa-spin"></i> Loading threads...</p>
-      ) : threads.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No threads here yet. Be the first to start a discussion!</p>
+      {threads.length === 0 ? (
+        <div className="forum-card" style={{ padding: '2.5rem', textAlign: 'center' }}>
+          <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-code)', fontSize: '0.85rem', margin: 0 }}>
+            No threads here yet. Be the first to start a discussion!
+          </p>
+        </div>
       ) : (
         threads.map((t) => (
           <div key={t.id} className="thread-item" onClick={() => onSelectThread(t.id, t.title)}>
             <div style={{ width: '100%' }}>
-              <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h4
+                style={{
+                  fontSize: '1.05rem',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 800,
+                  color: 'var(--text-main)',
+                  marginBottom: '0.4rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
                 {t.isLocked && <i className="fa-solid fa-lock" style={{ color: 'var(--accent-gold)' }}></i>}
                 <span>{t.title}</span>
               </h4>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                <span>Started by <strong>{formatAuthorName(t.authorName)}</strong></span>
-                <span className={`role-badge role-${t.authorRole}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}>
+              <div
+                style={{
+                  fontSize: '0.8rem',
+                  fontFamily: 'var(--font-code)',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  flexWrap: 'wrap'
+                }}
+              >
+                <span>
+                  Started by <strong style={{ color: 'var(--text-main)' }}>{formatAuthorName(t.authorName)}</strong>
+                </span>
+                <span className={`role-badge role-${t.authorRole}`}>
                   {t.authorRoleTag || t.authorRole}
                 </span>
                 <span>• {new Date(t.createdAt).toLocaleDateString()}</span>

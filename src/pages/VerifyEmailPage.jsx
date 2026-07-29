@@ -31,20 +31,36 @@ export const VerifyEmailPage = () => {
   return (
     <div className="verify-card">
       <i className="fa-solid fa-envelope-circle-check verify-icon"></i>
-      <h2 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>Verify Your Email Address</h2>
-      <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '1rem' }}>
-        We have sent a verification link to <strong style={{ color: 'var(--text-main)' }}>{currentUser?.email}</strong>.
+      <h2
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '1.75rem',
+          fontWeight: 900,
+          textTransform: 'uppercase',
+          letterSpacing: '1px',
+          marginBottom: '0.75rem',
+          color: 'var(--text-main)'
+        }}
+      >
+        Verify Your Email Address
+      </h2>
+      <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginBottom: '1.25rem', lineHeight: '1.6' }}>
+        We have sent a verification link to <strong style={{ color: 'var(--accent-gold)' }}>{currentUser?.email}</strong>.
         Please verify your email address to unlock full access to AstralForum.
       </p>
 
       <div className="spam-notice">
-        <i className="fa-solid fa-triangle-exclamation"></i> <strong>Can't find the email?</strong><br />
+        <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: '0.4rem' }}></i> <strong>Can't find the email?</strong><br />
         Please check your <strong>SPAM</strong> or <strong>Junk</strong> folder! Email providers filter automated verification links.
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1.5rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.75rem' }}>
         <button className="btn btn-primary" onClick={handleResend} disabled={cooldown > 0}>
-          {cooldown > 0 ? <><i className="fa-solid fa-clock"></i> Resend in {cooldown}s</> : <><i className="fa-solid fa-paper-plane"></i> Resend Verification Email</>}
+          {cooldown > 0 ? (
+            <><i className="fa-solid fa-clock"></i> Resend in {cooldown}s</>
+          ) : (
+            <><i className="fa-solid fa-paper-plane"></i> Resend Verification Email</>
+          )}
         </button>
         <button className="btn" onClick={checkAuth}>
           <i className="fa-solid fa-arrows-rotate"></i> I've Verified, Refresh Status

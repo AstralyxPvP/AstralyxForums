@@ -80,8 +80,23 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
     }
   };
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}><i className="fa-solid fa-spinner fa-spin"></i> Loading thread & comments...</p>;
-  if (!threadData) return <p style={{ color: 'var(--accent-danger)' }}>Thread not found.</p>;
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontFamily: 'var(--font-code)', fontSize: '0.85rem' }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--accent-gold)', marginRight: '0.5rem' }}></i> Loading thread & comments...
+      </div>
+    );
+  }
+
+  if (!threadData) {
+    return (
+      <div className="forum-card" style={{ padding: '2.5rem', textAlign: 'center', borderColor: 'var(--accent-red)' }}>
+        <p style={{ color: 'var(--accent-danger)', fontFamily: 'var(--font-code)', fontSize: '0.85rem', margin: 0 }}>
+          <i className="fa-solid fa-circle-exclamation" style={{ marginRight: '0.5rem' }}></i> Thread not found.
+        </p>
+      </div>
+    );
+  }
 
   const displayTitle = threadData.title || title;
   const mainAuthorName = formatAuthorName(threadData.authorName);
@@ -94,16 +109,23 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
 
   return (
     <div>
+      {/* Breadcrumb Navigation */}
       <div className="breadcrumb">
-        <span onClick={onBackToForums}><i className="fa-solid fa-house"></i> Forums</span> &gt;{' '}
-        <span onClick={() => onBackToSubcategory(threadData.subcategoryId, subcategory?.name || 'Section')}>
+        <span onClick={onBackToForums} style={{ cursor: 'pointer' }}>
+          <i className="fa-solid fa-house"></i> Forums
+        </span>{' '}
+        &gt;{' '}
+        <span onClick={() => onBackToSubcategory(threadData.subcategoryId, subcategory?.name || 'Section')} style={{ cursor: 'pointer' }}>
           {subcategory?.name || 'Section'}
-        </span> &gt;{' '}
-        <span>{displayTitle}</span>
+        </span>{' '}
+        &gt; <span>{displayTitle}</span>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2>{displayTitle}</h2>
+      {/* Thread Title Header Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
+          {displayTitle}
+        </h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn-sm" onClick={handleCopyShareLink} title="Share Permalinks">
             <i className="fa-solid fa-share-nodes"></i> Share
@@ -117,52 +139,67 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
         </div>
       </div>
 
-      {/* Main Thread Post */}
+      {/* Main Thread Original Post Card */}
       <div className="post-card main-post">
         <div className="post-author">
           <Avatar src={threadData.authorAvatar} name={mainAuthorName} size={56} />
-          <div style={{ fontWeight: 700, fontSize: '0.95rem', marginTop: '0.4rem' }}>{mainAuthorName}</div>
-          <span className={`role-badge role-${threadData.authorRole}`} style={{ marginTop: '0.4rem' }}>
+          <div className="post-author-name">{mainAuthorName}</div>
+          <span className={`role-badge role-${threadData.authorRole}`}>
             {threadData.authorRoleTag || threadData.authorRole}
           </span>
           {threadData.authorLink && (
-            <a href={threadData.authorLink} target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', marginTop: '0.4rem' }}>
+            <a href={threadData.authorLink} target="_blank" rel="noreferrer" style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-code)', textDecoration: 'none' }}>
               <i className="fa-solid fa-link"></i> Website
             </a>
           )}
         </div>
+
         <div className="post-content">
           <div>
             <div className="post-header">
-              <span><i className="fa-solid fa-clock"></i> {new Date(threadData.createdAt).toLocaleString()} {threadData.updatedAt ? '(edited)' : ''}</span>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
+              <div className="post-header-left">
+                <span>
+                  <i className="fa-solid fa-clock" style={{ marginRight: '0.35rem' }}></i>
+                  {new Date(threadData.createdAt).toLocaleString()} {threadData.updatedAt ? '(edited)' : ''}
+                </span>
+              </div>
+              <div className="post-header-right">
                 {currentUser && (
-                  <button className="btn btn-sm" onClick={() => setReportModalData({ threadId, postId: 'main' })}>
+                  <button className="btn btn-xs" onClick={() => setReportModalData({ threadId, postId: 'main' })} title="Report Post">
                     <i className="fa-solid fa-flag"></i>
                   </button>
                 )}
                 {canEditMain && (
-                  <button className="btn btn-sm" onClick={() => setEditModalData({ threadId, postId: 'main', content: threadData.content })}>
+                  <button className="btn btn-xs" onClick={() => setEditModalData({ threadId, postId: 'main', content: threadData.content })}>
                     <i className="fa-solid fa-pen"></i> Edit
                   </button>
                 )}
                 {canDeleteMain && (
-                  <button className="btn btn-sm btn-danger" onClick={() => handleDeletePost('main')}>
+                  <button className="btn btn-xs btn-danger" onClick={() => handleDeletePost('main')}>
                     <i className="fa-solid fa-trash"></i>
                   </button>
                 )}
               </div>
             </div>
+            
             <div className="post-body" dangerouslySetInnerHTML={{ __html: marked.parse(threadData.content || '') }} />
           </div>
+
           {threadData.authorSignature && <div className="post-signature">{threadData.authorSignature}</div>}
         </div>
       </div>
 
-      {/* Comments List */}
-      <h3 style={{ margin: '1.5rem 0 1rem' }}><i className="fa-solid fa-comments"></i> Comments ({posts.length})</h3>
+      {/* Comments List Header */}
+      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 900, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '1px', margin: '2rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <i className="fa-solid fa-comments" style={{ color: 'var(--accent-red)' }}></i> Comments ({posts.length})
+      </h3>
+
       {posts.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>No comments yet.</p>
+        <div className="forum-card" style={{ padding: '2rem', textAlign: 'center', marginBottom: '2rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-code)', fontSize: '0.85rem', margin: 0 }}>
+            No comments yet. Be the first to leave a response!
+          </p>
+        </div>
       ) : (
         posts.map((p) => {
           const commentAuthorName = formatAuthorName(p.authorName);
@@ -177,35 +214,43 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
             <div key={p.id} className="post-card">
               <div className="post-author">
                 <Avatar src={p.authorAvatar} name={commentAuthorName} size={56} />
-                <div style={{ fontWeight: 700, fontSize: '0.95rem', marginTop: '0.4rem' }}>{commentAuthorName}</div>
-                <span className={`role-badge role-${p.authorRole}`} style={{ marginTop: '0.4rem' }}>
+                <div className="post-author-name">{commentAuthorName}</div>
+                <span className={`role-badge role-${p.authorRole}`}>
                   {p.authorRoleTag || p.authorRole}
                 </span>
               </div>
+
               <div className="post-content">
                 <div>
                   <div className="post-header">
-                    <span><i className="fa-solid fa-clock"></i> {new Date(p.createdAt).toLocaleString()} {p.updatedAt ? '(edited)' : ''}</span>
-                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <div className="post-header-left">
+                      <span>
+                        <i className="fa-solid fa-clock" style={{ marginRight: '0.35rem' }}></i>
+                        {new Date(p.createdAt).toLocaleString()} {p.updatedAt ? '(edited)' : ''}
+                      </span>
+                    </div>
+                    <div className="post-header-right">
                       {currentUser && (
-                        <button className="btn btn-sm" onClick={() => setReportModalData({ threadId, postId: p.id })}>
+                        <button className="btn btn-xs" onClick={() => setReportModalData({ threadId, postId: p.id })} title="Report Comment">
                           <i className="fa-solid fa-flag"></i>
                         </button>
                       )}
                       {canEdit && (
-                        <button className="btn btn-sm" onClick={() => setEditModalData({ threadId, postId: p.id, content: p.content })}>
+                        <button className="btn btn-xs" onClick={() => setEditModalData({ threadId, postId: p.id, content: p.content })}>
                           <i className="fa-solid fa-pen"></i>
                         </button>
                       )}
                       {canDelete && (
-                        <button className="btn btn-sm btn-danger" onClick={() => handleDeletePost(p.id)}>
+                        <button className="btn btn-xs btn-danger" onClick={() => handleDeletePost(p.id)}>
                           <i className="fa-solid fa-trash"></i>
                         </button>
                       )}
                     </div>
                   </div>
+
                   <div className="post-body" dangerouslySetInnerHTML={{ __html: marked.parse(p.content || '') }} />
                 </div>
+
                 {p.authorSignature && <div className="post-signature">{p.authorSignature}</div>}
               </div>
             </div>
@@ -213,43 +258,79 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
         })
       )}
 
-      {/* Reply Area */}
+      {/* Reply Submission Area */}
       {threadData.isLocked && (!currentUser || (!canManageCategories() && !currentUser.permissions?.full)) ? (
-        <p style={{ color: 'var(--accent-gold)', fontWeight: 600, padding: '1rem', border: '1px solid var(--accent-gold)', borderRadius: '8px', textAlign: 'center' }}>
+        <div
+          style={{
+            background: 'rgba(251, 191, 36, 0.08)',
+            border: '1px solid var(--accent-gold)',
+            borderRadius: 'var(--r-md)',
+            padding: '1.25rem',
+            textAlign: 'center',
+            color: 'var(--accent-gold)',
+            fontFamily: 'var(--font-code)',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.6rem'
+          }}
+        >
           <i className="fa-solid fa-lock"></i> The comment section has been locked by staff.
-        </p>
+        </div>
       ) : currentUser && currentUser.isMuted ? (
-        <div className="mute-notice">
-          <i className="fa-solid fa-volume-xmark"></i> Your account is currently <strong>muted</strong>. Commenting is disabled. {currentUser.muteReason ? `Reason: ${currentUser.muteReason}` : ''}
+        <div
+          className="mute-notice"
+          style={{
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid var(--accent-red)',
+            borderRadius: 'var(--r-md)',
+            padding: '1rem 1.25rem',
+            color: 'var(--accent-danger)',
+            fontFamily: 'var(--font-code)',
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem'
+          }}
+        >
+          <i className="fa-solid fa-volume-xmark" style={{ fontSize: '1rem' }}></i>
+          <span>
+            Your account is currently <strong>muted</strong>. Commenting is disabled. {currentUser.muteReason ? `Reason: ${currentUser.muteReason}` : ''}
+          </span>
         </div>
       ) : currentUser ? (
-        <div style={{ marginTop: '2rem' }}>
-          <h3>Leave a Comment</h3>
-          <form onSubmit={handleCreateReply} style={{ marginTop: '0.8rem' }}>
+        <div style={{ marginTop: '2.5rem' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem' }}>
+            Leave a Comment
+          </h3>
+          <form onSubmit={handleCreateReply}>
             <div className="form-group md-textarea-container">
               <MarkdownToolbar targetId="postContent" />
               <textarea
                 id="postContent"
-                rows="4"
-                style={{ width: '100%', padding: '0.8rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: '#fff', outline: 'none' }}
+                rows="5"
                 placeholder="Write a response... (Markdown supported)"
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 required
               />
             </div>
-            <button type="submit" className="btn btn-primary" style={{ marginTop: '0.8rem' }}>
+            <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
               <i className="fa-solid fa-paper-plane"></i> Submit Comment
             </button>
           </form>
         </div>
       ) : (
-        <p style={{ marginTop: '1.5rem', color: 'var(--text-muted)' }}>
-          Please log in to comment.
-        </p>
+        <div className="forum-card" style={{ padding: '1.5rem', textAlign: 'center', marginTop: '2rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-code)', fontSize: '0.85rem', margin: 0 }}>
+            Please log in to leave a comment on this thread.
+          </p>
+        </div>
       )}
 
-      {/* Modals */}
+      {/* Edit & Report Modals */}
       <EditPostModal
         isOpen={!!editModalData}
         threadId={editModalData?.threadId}

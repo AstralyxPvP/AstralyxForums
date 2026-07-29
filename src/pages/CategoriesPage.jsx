@@ -46,12 +46,18 @@ export const CategoriesPage = ({ onSelectSubcategory }) => {
     }
   };
 
-  if (loading) return <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}><i className="fa-solid fa-spinner fa-spin"></i> Loading categories...</p>;
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontFamily: 'var(--font-code)', fontSize: '0.85rem' }}>
+        <i className="fa-solid fa-spinner fa-spin" style={{ color: 'var(--accent-gold)', marginRight: '0.5rem' }}></i> Loading network categories...
+      </div>
+    );
+  }
 
   return (
     <div>
       {canManageCategories() && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.25rem' }}>
           <button className="btn btn-primary btn-sm" onClick={() => setIsCatModalOpen(true)}>
             <i className="fa-solid fa-plus"></i> Create Category
           </button>
@@ -59,32 +65,48 @@ export const CategoriesPage = ({ onSelectSubcategory }) => {
       )}
 
       {categories.length === 0 ? (
-        <p style={{ textAlign: 'center' }}>No categories available yet.</p>
+        <div className="forum-card" style={{ padding: '2.5rem', textAlign: 'center' }}>
+          <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-code)', fontSize: '0.85rem' }}>
+            No category nodes available yet.
+          </p>
+        </div>
       ) : (
         categories.map((cat) => (
           <div key={cat.id} className="category-section">
             <div className="category-title">
-              <span><i className="fa-solid fa-folder"></i> {cat.name}</span>
+              <span>
+                <i className="fa-solid fa-folder" style={{ color: 'var(--accent-red)', marginRight: '0.5rem' }}></i> {cat.name}
+              </span>
               {canManageCategories() && (
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button className="btn btn-sm" onClick={() => setSelectedCatForSub(cat.id)}>
+                  <button className="btn btn-xs btn-warning" onClick={() => setSelectedCatForSub(cat.id)}>
                     <i className="fa-solid fa-plus"></i> Subcategory
                   </button>
-                  <button className="btn btn-sm btn-danger" onClick={() => handleDeleteCat(cat.id)}>
+                  <button className="btn btn-xs btn-danger" onClick={() => handleDeleteCat(cat.id)}>
                     <i className="fa-solid fa-trash"></i>
                   </button>
                 </div>
               )}
             </div>
 
-            {cat.subcategories.map((sub) => (
+            {cat.subcategories && cat.subcategories.map((sub) => (
               <div key={sub.id} className="forum-card" onClick={() => onSelectSubcategory(sub.id, sub.name)}>
                 <div className="forum-info">
                   <h3>
                     <i className="fa-solid fa-comments"></i> {sub.name}{' '}
                     {sub.isAnnouncement && (
-                      <span style={{ fontSize: '0.7rem', color: 'var(--accent-gold)' }}>
-                        <i className="fa-solid fa-bullhorn"></i> Announcements
+                      <span
+                        className="role-badge"
+                        style={{
+                          fontSize: '0.65rem',
+                          background: 'rgba(251, 191, 36, 0.15)',
+                          color: 'var(--accent-gold)',
+                          border: '1px solid rgba(251, 191, 36, 0.4)',
+                          marginLeft: '0.5rem',
+                          padding: '2px 6px'
+                        }}
+                      >
+                        <i className="fa-solid fa-bullhorn" style={{ marginRight: '0.25rem' }}></i> Announcements
                       </span>
                     )}
                   </h3>
@@ -92,7 +114,7 @@ export const CategoriesPage = ({ onSelectSubcategory }) => {
                 </div>
                 {canManageCategories() && (
                   <button
-                    className="btn btn-sm btn-danger"
+                    className="btn btn-xs btn-danger"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteSub(sub.id);
