@@ -8,6 +8,13 @@ export const ROLE_MAP = [
   'YouTube Rank', 'Astralyx+', 'AstralyxBot', 'Chat Assistant', 'Meme Lord', 'Member'
 ];
 
+export function formatAuthorName(name) {
+  if (!name || name === 'undefined' || name.trim() === '') {
+    return 'Deleted User';
+  }
+  return name;
+}
+
 export function getRoleRank(roleTag) {
   const idx = ROLE_MAP.indexOf(roleTag);
   return idx === -1 ? 999 : idx;
