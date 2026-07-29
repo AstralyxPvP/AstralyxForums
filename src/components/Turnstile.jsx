@@ -7,6 +7,15 @@ export default function Turnstile({ onVerify, onExpire }) {
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
 
+  // Store latest callbacks in refs to prevent unnecessary useEffect triggers
+  const onVerifyRef = useRef(onVerify);
+  const onExpireRef = useRef(onExpire);
+
+  useEffect(() => {
+    onVerifyRef.current = onVerify;
+    onExpireRef.current = onExpire;
+  });
+
   useEffect(() => {
     let isMounted = true;
     let intervalId = null;
@@ -14,12 +23,12 @@ export default function Turnstile({ onVerify, onExpire }) {
     const renderWidget = () => {
       if (!isMounted || !containerRef.current || !window.turnstile) return;
 
-      // Clean up previous widget instance if tab switched
       if (widgetIdRef.current !== null) {
         try {
           window.turnstile.remove(widgetIdRef.current);
+          widgetIdRef.current = null;
         } catch (e) {
-          // ignore
+          // ignore cleanup error
         }
       }
 
@@ -28,15 +37,15 @@ export default function Turnstile({ onVerify, onExpire }) {
       try {
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
-          theme: 'dark', // Matches dark mode UI
+          theme: 'dark',
           callback: (token) => {
-            if (isMounted && onVerify) onVerify(token);
+            if (isMounted && onVerifyRef.current) onVerifyRef.current(token);
           },
           'expired-callback': () => {
-            if (isMounted && onExpire) onExpire();
+            if (isMounted && onExpireRef.current) onExpireRef.current();
           },
           'error-callback': () => {
-            if (isMounted && onExpire) onExpire();
+            if (isMounted && onExpireRef.current) onExpireRef.current();
           }
         });
       } catch (err) {
@@ -47,7 +56,6 @@ export default function Turnstile({ onVerify, onExpire }) {
     if (window.turnstile) {
       renderWidget();
     } else {
-      // Poll every 100ms until Cloudflare script is ready
       intervalId = setInterval(() => {
         if (window.turnstile) {
           clearInterval(intervalId);
@@ -62,12 +70,13 @@ export default function Turnstile({ onVerify, onExpire }) {
       if (window.turnstile && widgetIdRef.current !== null) {
         try {
           window.turnstile.remove(widgetIdRef.current);
+          widgetIdRef.current = null;
         } catch (e) {
           // ignore
         }
       }
     };
-  }, [onVerify, onExpire]);
+  }, []); // Mounted strictly once
 
   return (
     <div 

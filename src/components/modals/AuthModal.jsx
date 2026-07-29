@@ -1,8 +1,13 @@
 // src/components/modals/AuthModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Turnstile from '../Turnstile';
 
-export function AuthModal({ isOpen, onClose, activeTab, setActiveTab, onAuthSuccess }) {
+export function AuthModal({ isOpen, onClose, activeTab: propActiveTab, setActiveTab, onAuthSuccess }) {
+  const [localTab, setLocalTab] = useState('login');
+  
+  // Guarantee activeTab always has a valid string value
+  const activeTab = propActiveTab || localTab || 'login';
+
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
@@ -14,10 +19,17 @@ export function AuthModal({ isOpen, onClose, activeTab, setActiveTab, onAuthSucc
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (propActiveTab) {
+      setLocalTab(propActiveTab);
+    }
+  }, [propActiveTab]);
+
   if (!isOpen) return null;
 
   const handleTabSwitch = (tab) => {
-    setActiveTab(tab);
+    if (setActiveTab) setActiveTab(tab);
+    setLocalTab(tab);
     setTurnstileToken('');
     setError('');
   };
@@ -33,16 +45,17 @@ export function AuthModal({ isOpen, onClose, activeTab, setActiveTab, onAuthSucc
     setError('');
 
     try {
-      await onAuthSuccess('login', {
-        email: loginEmail,
-        password: loginPassword,
-        turnstileToken
-      });
+      if (onAuthSuccess) {
+        await onAuthSuccess('login', {
+          email: loginEmail,
+          password: loginPassword,
+          turnstileToken
+        });
+      }
       onClose();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Login failed');
       setTurnstileToken('');
-      if (window.turnstile) window.turnstile.reset();
     } finally {
       setLoading(false);
     }
@@ -59,18 +72,19 @@ export function AuthModal({ isOpen, onClose, activeTab, setActiveTab, onAuthSucc
     setError('');
 
     try {
-      await onAuthSuccess('register', {
-        username: regUsername,
-        email: regEmail,
-        password: regPassword,
-        turnstileToken
-      });
+      if (onAuthSuccess) {
+        await onAuthSuccess('register', {
+          username: regUsername,
+          email: regEmail,
+          password: regPassword,
+          turnstileToken
+        });
+      }
       alert('Registration successful! A verification link has been sent to your email.');
       handleTabSwitch('login');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Registration failed');
       setTurnstileToken('');
-      if (window.turnstile) window.turnstile.reset();
     } finally {
       setLoading(false);
     }
@@ -102,7 +116,8 @@ export function AuthModal({ isOpen, onClose, activeTab, setActiveTab, onAuthSucc
           </div>
         )}
 
-        {activeTab === 'login' && (
+        {/* Ternary condition guarantees one of the forms is ALWAYS rendered */}
+        {activeTab === 'login' ? (
           <form onSubmit={handleLoginSubmit}>
             <div className="form-group">
               <label>Email Address</label>
@@ -124,7 +139,6 @@ export function AuthModal({ isOpen, onClose, activeTab, setActiveTab, onAuthSucc
             </div>
 
             <Turnstile
-              key="login-turnstile"
               onVerify={(token) => setTurnstileToken(token)}
               onExpire={() => setTurnstileToken('')}
             />
@@ -133,9 +147,7 @@ export function AuthModal({ isOpen, onClose, activeTab, setActiveTab, onAuthSucc
               <i className="fa-solid fa-right-to-bracket"></i> {loading ? 'Logging in...' : 'Log In'}
             </button>
           </form>
-        )}
-
-        {activeTab === 'register' && (
+        ) : (
           <form onSubmit={handleRegisterSubmit}>
             <div className="form-group">
               <label>Username</label>
@@ -166,7 +178,6 @@ export function AuthModal({ isOpen, onClose, activeTab, setActiveTab, onAuthSucc
             </div>
 
             <Turnstile
-              key="register-turnstile"
               onVerify={(token) => setTurnstileToken(token)}
               onExpire={() => setTurnstileToken('')}
             />
