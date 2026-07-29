@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { marked } from 'marked';
-import { apiFetch, canModerateRole } from '../api';
+import { apiFetch, SITE_ORIGIN, canModerateRole } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { EditPostModal } from '../components/modals/EditPostModal';
@@ -33,6 +33,12 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
     fetchThreadDetail();
   }, [threadId]);
 
+  const handleCopyShareLink = () => {
+    const shareUrl = `${SITE_ORIGIN}/?thread=${threadId}`;
+    navigator.clipboard.writeText(shareUrl);
+    alert('Thread permalink copied to clipboard!');
+  };
+
   const handleToggleLock = async () => {
     try {
       await apiFetch(`/api/threads/${threadId}/lock`, {
@@ -64,7 +70,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
     try {
       await apiFetch(`/api/threads/${threadId}/posts/${postId}`, { method: 'DELETE' });
       if (postId === 'main') {
-        onBackToSubcategory();
+        onBackToSubcategory(threadData?.subcategoryId);
       } else {
         fetchThreadDetail();
       }
@@ -76,6 +82,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
   if (loading) return <p style={{ color: 'var(--text-muted)' }}><i className="fa-solid fa-spinner fa-spin"></i> Loading thread & comments...</p>;
   if (!threadData) return <p style={{ color: 'var(--accent-danger)' }}>Thread not found.</p>;
 
+  const displayTitle = threadData.title || title;
   const canDeleteMain = currentUser && (
     currentUser.id === threadData.authorId ||
     ((currentUser.permissions?.delete || currentUser.permissions?.full || canManageCategories()) && canModerateRole(currentUser.roleTag, threadData.authorRoleTag))
@@ -86,18 +93,25 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
     <div>
       <div className="breadcrumb">
         <span onClick={onBackToForums}><i className="fa-solid fa-house"></i> Forums</span> &gt;{' '}
-        <span onClick={onBackToSubcategory}>{subcategory.name}</span> &gt;{' '}
-        <span>{title}</span>
+        <span onClick={() => onBackToSubcategory(threadData.subcategoryId, subcategory?.name || 'Section')}>
+          {subcategory?.name || 'Section'}
+        </span> &gt;{' '}
+        <span>{displayTitle}</span>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2>{title}</h2>
-        {(canManageCategories() || currentUser?.permissions?.full) && (
-          <button className={`btn btn-sm ${threadData.isLocked ? 'btn-primary' : 'btn-warning'}`} onClick={handleToggleLock}>
-            <i className={`fa-solid ${threadData.isLocked ? 'fa-lock-open' : 'fa-lock'}`}></i>{' '}
-            {threadData.isLocked ? 'Unlock Comments' : 'Lock Comments'}
+        <h2>{displayTitle}</h2>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-sm" onClick={handleCopyShareLink} title="Share Permalinks">
+            <i className="fa-solid fa-share-nodes"></i> Share
           </button>
-        )}
+          {(canManageCategories() || currentUser?.permissions?.full) && (
+            <button className={`btn btn-sm ${threadData.isLocked ? 'btn-primary' : 'btn-warning'}`} onClick={handleToggleLock}>
+              <i className={`fa-solid ${threadData.isLocked ? 'fa-lock-open' : 'fa-lock'}`}></i>{' '}
+              {threadData.isLocked ? 'Unlock Comments' : 'Lock Comments'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Thread Post */}
