@@ -720,3 +720,35 @@ body::after {
   .brand-top { font-size: 0.8rem; }
   .brand-sub { font-size: 0.55rem; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   USER PROFILE MODAL — Public profile card
+═══════════════════════════════════════════════════════ */
+
+/* Clickable author name hover effect in post cards */
+.post-author-name[style*="cursor: pointer"]:hover,
+.post-author [style*="cursor: pointer"]:hover .post-author-name {
+  color: var(--accent-gold);
+  transition: color 0.2s var(--ease);
+}
+
+/* Avatar wrapper hover when clickable */
+.post-author [style*="cursor: pointer"]:hover img,
+.post-author [style*="cursor: pointer"]:hover canvas,
+.post-author [style*="cursor: pointer"]:hover .avatar-fallback {
+  box-shadow: 0 0 0 2px var(--accent-gold), 0 0 12px rgba(251, 191, 36, 0.35);
+  transition: box-shadow 0.2s var(--ease);
+}
+
+/* Ignore badge counter in tab */
+.tab-btn .ignore-count {
+  background: var(--accent-red);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 1px 5px;
+  margin-left: 4px;
+  font-family: var(--font-code);
+  vertical-align: middle;
+}

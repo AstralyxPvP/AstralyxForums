@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch, SITE_ORIGIN } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { AvatarCanvas } from '../AvatarCanvas';
+import { IgnoreListModal } from './IgnoreListModal';
 
 export const ProfileModal = ({ isOpen, onClose }) => {
   const { currentUser, checkAuth, logout } = useAuth();
@@ -82,6 +83,24 @@ export const ProfileModal = ({ isOpen, onClose }) => {
           <button className={`tab-btn ${tab === 'discord' ? 'active' : ''}`} onClick={() => setTab('discord')}>
             <i className="fa-brands fa-discord"></i> Discord Sync
           </button>
+          {/* NEW: Ignore List tab */}
+          <button className={`tab-btn ${tab === 'ignore' ? 'active' : ''}`} onClick={() => setTab('ignore')}>
+            <i className="fa-solid fa-eye-slash"></i> Ignore List
+            {(currentUser.ignoredUsers?.length > 0) && (
+              <span style={{
+                background: 'var(--accent-red)',
+                color: '#fff',
+                borderRadius: '999px',
+                fontSize: '0.6rem',
+                fontWeight: 900,
+                padding: '1px 5px',
+                marginLeft: '4px',
+                fontFamily: 'var(--font-code)'
+              }}>
+                {currentUser.ignoredUsers.length}
+              </span>
+            )}
+          </button>
           <button className={`tab-btn ${tab === 'danger' ? 'active' : ''}`} onClick={() => setTab('danger')}>
             <i className="fa-solid fa-shield-halved"></i> Account
           </button>
@@ -130,6 +149,9 @@ export const ProfileModal = ({ isOpen, onClose }) => {
             )}
           </div>
         )}
+
+        {/* NEW: Ignore List tab content */}
+        {tab === 'ignore' && <IgnoreListModal />}
 
         {tab === 'danger' && (
           <div>

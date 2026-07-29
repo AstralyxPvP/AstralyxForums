@@ -6,9 +6,10 @@ import { Avatar } from '../components/Avatar';
 import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { EditPostModal } from '../components/modals/EditPostModal';
 import { ReportModal } from '../components/modals/ReportModal';
+import { UserProfileModal } from '../components/modals/UserProfileModal';
 
 export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums, onBackToSubcategory }) => {
-  const { currentUser, canManageCategories } = useAuth();
+  const { currentUser, canManageCategories, checkAuth } = useAuth();
   const [threadData, setThreadData] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,6 +17,9 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
 
   const [editModalData, setEditModalData] = useState(null);
   const [reportModalData, setReportModalData] = useState(null);
+
+  // NEW: User profile modal state
+  const [viewProfileUserId, setViewProfileUserId] = useState(null);
 
   const fetchThreadDetail = async () => {
     setLoading(true);
@@ -75,6 +79,23 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
       } else {
         fetchThreadDetail();
       }
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  // NEW: Ignore a user directly from a post
+  const handleIgnoreUser = async (targetUserId, targetName) => {
+    if (!currentUser) return;
+    if (!confirm(`Ignore ${targetName}? Their posts and threads will be hidden from you.`)) return;
+    try {
+      await apiFetch('/api/user/ignore', {
+        method: 'POST',
+        body: JSON.stringify({ targetUserId })
+      });
+      await checkAuth();
+      // Re-fetch so the ignored posts disappear immediately
+      fetchThreadDetail();
     } catch (err) {
       alert(err.message);
     }
@@ -142,8 +163,22 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
       {/* Main Thread Original Post Card */}
       <div className="post-card main-post">
         <div className="post-author">
-          <Avatar src={threadData.authorAvatar} name={mainAuthorName} size={56} />
-          <div className="post-author-name">{mainAuthorName}</div>
+          {/* NEW: Clicking avatar or name opens the public profile */}
+          <div
+            style={{ cursor: 'pointer' }}
+            onClick={() => setViewProfileUserId(threadData.authorId)}
+            title={`View ${mainAuthorName}'s profile`}
+          >
+            <Avatar src={threadData.authorAvatar} name={mainAuthorName} size={56} />
+          </div>
+          <div
+            className="post-author-name"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setViewProfileUserId(threadData.authorId)}
+            title={`View ${mainAuthorName}'s profile`}
+          >
+            {mainAuthorName}
+          </div>
           <span className={`role-badge role-${threadData.authorRole}`}>
             {threadData.authorRoleTag || threadData.authorRole}
           </span>
@@ -164,6 +199,17 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
                 </span>
               </div>
               <div className="post-header-right">
+                {/* NEW: Ignore button on main post (only for other users) */}
+                {currentUser && currentUser.id !== threadData.authorId && (
+                  <button
+                    className="btn btn-xs"
+                    onClick={() => handleIgnoreUser(threadData.authorId, mainAuthorName)}
+                    title={`Ignore ${mainAuthorName}`}
+                    style={{ opacity: 0.7 }}
+                  >
+                    <i className="fa-solid fa-eye-slash"></i>
+                  </button>
+                )}
                 {currentUser && (
                   <button className="btn btn-xs" onClick={() => setReportModalData({ threadId, postId: 'main' })} title="Report Post">
                     <i className="fa-solid fa-flag"></i>
@@ -213,8 +259,22 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
           return (
             <div key={p.id} className="post-card">
               <div className="post-author">
-                <Avatar src={p.authorAvatar} name={commentAuthorName} size={56} />
-                <div className="post-author-name">{commentAuthorName}</div>
+                {/* NEW: Clickable avatar/name opens public profile */}
+                <div
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setViewProfileUserId(p.authorId)}
+                  title={`View ${commentAuthorName}'s profile`}
+                >
+                  <Avatar src={p.authorAvatar} name={commentAuthorName} size={56} />
+                </div>
+                <div
+                  className="post-author-name"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setViewProfileUserId(p.authorId)}
+                  title={`View ${commentAuthorName}'s profile`}
+                >
+                  {commentAuthorName}
+                </div>
                 <span className={`role-badge role-${p.authorRole}`}>
                   {p.authorRoleTag || p.authorRole}
                 </span>
@@ -230,6 +290,17 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
                       </span>
                     </div>
                     <div className="post-header-right">
+                      {/* NEW: Ignore button on comments (only for other users) */}
+                      {currentUser && !isAuthor && (
+                        <button
+                          className="btn btn-xs"
+                          onClick={() => handleIgnoreUser(p.authorId, commentAuthorName)}
+                          title={`Ignore ${commentAuthorName}`}
+                          style={{ opacity: 0.7 }}
+                        >
+                          <i className="fa-solid fa-eye-slash"></i>
+                        </button>
+                      )}
                       {currentUser && (
                         <button className="btn btn-xs" onClick={() => setReportModalData({ threadId, postId: p.id })} title="Report Comment">
                           <i className="fa-solid fa-flag"></i>
@@ -345,6 +416,14 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
         postId={reportModalData?.postId}
         onClose={() => setReportModalData(null)}
       />
+
+      {/* NEW: Public User Profile Modal */}
+      {viewProfileUserId && (
+        <UserProfileModal
+          userId={viewProfileUserId}
+          onClose={() => setViewProfileUserId(null)}
+        />
+      )}
     </div>
   );
 };
