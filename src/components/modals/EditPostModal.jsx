@@ -1,20 +1,25 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../api';
-import MarkdownToolbar from '../MarkdownToolbar';
+import { MarkdownToolbar } from '../MarkdownToolbar';
 
-export default function EditPostModal({ data, onClose }) {
-  const [content, setContent] = useState(data.content || '');
-  const textareaRef = useRef(null);
+export const EditPostModal = ({ isOpen, threadId, postId, initialContent, onClose, onSuccess }) => {
+  const [content, setContent] = useState('');
 
-  const handleSave = async (e) => {
+  useEffect(() => {
+    setContent(initialContent || '');
+  }, [initialContent]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await apiFetch(`/api/threads/${data.threadId}/posts/${data.postId}`, {
+      await apiFetch(`/api/threads/${threadId}/posts/${postId}`, {
         method: 'PUT',
         body: JSON.stringify({ content })
       });
+      onSuccess();
       onClose();
-      window.location.reload();
     } catch (err) {
       alert(err.message);
     }
@@ -24,17 +29,11 @@ export default function EditPostModal({ data, onClose }) {
     <div className="modal-overlay">
       <div className="modal">
         <h2><i className="fa-solid fa-pen-to-square"></i> Edit Content</h2>
-        <form onSubmit={handleSave}>
+        <form onSubmit={handleSubmit}>
           <div className="form-group md-textarea-container">
             <label>Content (Markdown Supported)</label>
-            <MarkdownToolbar textareaRef={textareaRef} />
-            <textarea
-              ref={textareaRef}
-              rows="6"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              required
-            />
+            <MarkdownToolbar targetId="editPostContentInput" />
+            <textarea id="editPostContentInput" rows="6" value={content} onChange={(e) => setContent(e.target.value)} required></textarea>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
             <button type="button" className="btn" onClick={onClose}>Cancel</button>
@@ -44,4 +43,4 @@ export default function EditPostModal({ data, onClose }) {
       </div>
     </div>
   );
-}
+};
