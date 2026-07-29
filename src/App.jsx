@@ -21,6 +21,7 @@ export default function App() {
   const [authTab, setAuthTab] = useState('login');
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const parseRouteFromUrl = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
@@ -102,7 +103,15 @@ export default function App() {
       <div className="app-root">
         <header className="navbar">
           <div className="brand" onClick={navigateToCategories}>
-            <i className="fa-solid fa-planet"></i> <span>ASTRAL</span>FORUM
+            <img
+              className="brand-logo"
+              src="https://www.astralyxpvp.int.yt/Assets/logo-compress.png"
+              alt="AstralyxPvP"
+            />
+            <div className="brand-text">
+              <span className="brand-top">AstralyxPvP</span>
+              <span className="brand-sub">Forums</span>
+            </div>
           </div>
           <div className="nav-actions">
             <button className="btn btn-sm btn-danger" onClick={logout}>
@@ -121,8 +130,16 @@ export default function App() {
     <div className="app-root">
       {/* NAVBAR */}
       <header className="navbar">
-        <div className="brand" onClick={navigateToCategories}>
-          <i className="fa-solid fa-planet"></i> <span>ASTRAL</span>FORUM
+        <div className="brand" onClick={() => { navigateToCategories(); setMenuOpen(false); }}>
+          <img
+            className="brand-logo"
+            src="https://www.astralyxpvp.int.yt/Assets/logo-compress.png"
+            alt="AstralyxPvP"
+          />
+          <div className="brand-text">
+            <span className="brand-top">AstralyxPvP</span>
+            <span className="brand-sub">Forums</span>
+          </div>
         </div>
         <div className="nav-actions">
           {currentUser ? (
@@ -162,7 +179,50 @@ export default function App() {
             </>
           )}
         </div>
+        {/* Hamburger — mobile */}
+        <button
+          className={"hamburger" + (menuOpen ? " open" : "")}
+          onClick={() => setMenuOpen(o => !o)}
+          aria-label="Menu"
+        >
+          <span /><span /><span />
+        </button>
       </header>
+
+      {/* Mobile menu */}
+      <div className={"mobile-menu" + (menuOpen ? " open" : "")}>
+        {currentUser ? (
+          <>
+            <div className="mobile-user-row">
+              <Avatar src={currentUser.avatarUrl} name={currentUser.displayName} size={36} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{currentUser.displayName}</div>
+                <span className={"role-badge role-" + currentUser.role}>{currentUser.roleTag || currentUser.role}</span>
+              </div>
+            </div>
+            {isStaff() && (
+              <button className="btn btn-warning" onClick={() => { setStaffModalOpen(true); setMenuOpen(false); }}>
+                <i className="fa-solid fa-user-shield" /> Staff Panel
+              </button>
+            )}
+            <button className="btn" onClick={() => { setProfileModalOpen(true); setMenuOpen(false); }}>
+              <i className="fa-solid fa-gear" /> Profile
+            </button>
+            <button className="btn btn-danger" onClick={() => { logout(); setMenuOpen(false); }}>
+              <i className="fa-solid fa-right-from-bracket" /> Log Out
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="btn" onClick={() => { openAuth('login'); setMenuOpen(false); }}>
+              <i className="fa-solid fa-right-to-bracket" /> Log In
+            </button>
+            <button className="btn btn-primary" onClick={() => { openAuth('register'); setMenuOpen(false); }}>
+              <i className="fa-solid fa-user-plus" /> Register
+            </button>
+          </>
+        )}
+      </div>
 
       {/* HERO BANNER */}
       <div className="hero">
