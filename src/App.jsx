@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
 import { apiFetch, SITE_ORIGIN } from './api';
 import { CategoriesPage } from './pages/CategoriesPage';
@@ -11,7 +11,8 @@ import { StaffModal } from './components/modals/StaffModal';
 
 export default function App() {
   const { currentUser, isStaff, logout, checkAuth } = useAuth();
-  const [currentView, setCurrentView] = useState('categories');
+  
+  const [currentView, setCurrentView] = useState('categories'); // 'categories' | 'subcategory' | 'thread'
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [selectedThread, setSelectedThread] = useState(null);
 
@@ -20,8 +21,37 @@ export default function App() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
 
+  // Parse URL to resolve view & IDs
+  const parseRouteFromUrl = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
+    const path = window.location.pathname;
+
+    const threadId = params.get('thread') || (path.startsWith('/thread/') ? path.split('/thread/')[1] : null);
+    const subcatId = params.get('subcat') || (path.startsWith('/subcat/') ? path.split('/subcat/')[1] : null);
+
+    if (threadId) {
+      setSelectedThread((prev) => (prev?.id === threadId ? prev : { id: threadId, title: '' }));
+      setCurrentView('thread');
+    } else if (subcatId) {
+      setSelectedSubcategory((prev) => (prev?.id === subcatId ? prev : { id: subcatId, name: '' }));
+      setSelectedThread(null);
+      setCurrentView('subcategory');
+    } else {
+      setSelectedSubcategory(null);
+      setSelectedThread(null);
+      setCurrentView('categories');
+    }
+  }, []);
+
+  // Handle Initial Load & PopState (Browser Back/Forward)
   useEffect(() => {
-    // Handle OAuth Callback & Verification redirect
+    parseRouteFromUrl();
+    window.addEventListener('popstate', parseRouteFromUrl);
+    return () => window.removeEventListener('popstate', parseRouteFromUrl);
+  }, [parseRouteFromUrl]);
+
+  // Handle OAuth Callback & Email Verification redirect
+  useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('mode') === 'verifyEmail') {
       alert('Email verified successfully!');
@@ -44,6 +74,27 @@ export default function App() {
     }
   }, [currentUser, checkAuth]);
 
+  // Navigation Handlers
+  const navigateToCategories = () => {
+    window.history.pushState({}, '', '/');
+    setSelectedSubcategory(null);
+    setSelectedThread(null);
+    setCurrentView('categories');
+  };
+
+  const navigateToSubcategory = (id, name = '') => {
+    window.history.pushState({}, '', `/?subcat=${id}`);
+    setSelectedSubcategory({ id, name });
+    setSelectedThread(null);
+    setCurrentView('subcategory');
+  };
+
+  const navigateToThread = (threadId, title = '') => {
+    window.history.pushState({}, '', `/?thread=${threadId}`);
+    setSelectedThread({ id: threadId, title });
+    setCurrentView('thread');
+  };
+
   const openAuth = (tab) => {
     setAuthTab(tab);
     setAuthModalOpen(true);
@@ -53,7 +104,7 @@ export default function App() {
     return (
       <div className="app-root">
         <header className="navbar">
-          <div className="brand">
+          <div className="brand" onClick={navigateToCategories}>
             <i className="fa-solid fa-planet"></i> <span>ASTRAL</span>FORUM
           </div>
           <div className="nav-actions">
@@ -73,7 +124,7 @@ export default function App() {
     <div className="app-root">
       {/* NAVBAR */}
       <header className="navbar">
-        <div className="brand" onClick={() => setCurrentView('categories')}>
+        <div className="brand" onClick={navigateToCategories}>
           <i className="fa-solid fa-planet"></i> <span>ASTRAL</span>FORUM
         </div>
         <div className="nav-actions">
@@ -127,31 +178,28 @@ export default function App() {
       <div className="container">
         {currentView === 'categories' && (
           <CategoriesPage
-            onSelectSubcategory={(id, name) => {
-              setSelectedSubcategory({ id, name });
-              setCurrentView('subcategory');
-            }}
+            onSelectSubcategory={(id, name) => navigateToSubcategory(id, name)}
           />
         )}
 
         {currentView === 'subcategory' && selectedSubcategory && (
           <SubcategoryPage
             subcategory={selectedSubcategory}
-            onBack={() => setCurrentView('categories')}
-            onSelectThread={(id, title) => {
-              setSelectedThread({ id, title });
-              setCurrentView('thread');
-            }}
+            onBack={navigateToCategories}
+            onSelectThread={(id, title) => navigateToThread(id, title)}
           />
         )}
 
-        {currentView === 'thread' && selectedThread && selectedSubcategory && (
+        {currentView === 'thread' && selectedThread && (
           <ThreadDetailPage
             threadId={selectedThread.id}
             title={selectedThread.title}
             subcategory={selectedSubcategory}
-            onBackToForums={() => setCurrentView('categories')}
-            onBackToSubcategory={() => setCurrentView('subcategory')}
+            onBackToForums={navigateToCategories}
+            onBackToSubcategory={(subId, subName) => {
+              if (subId) navigateToSubcategory(subId, subName);
+              else navigateToCategories();
+            }}
           />
         )}
       </div>
