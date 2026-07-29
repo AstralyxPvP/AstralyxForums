@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
-import { apiFetch, SITE_ORIGIN } from './api';
+import { apiFetch, SITE_ORIGIN, formatAuthorName } from './api';
+import { Avatar } from './components/Avatar';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { SubcategoryPage } from './pages/SubcategoryPage';
 import { ThreadDetailPage } from './pages/ThreadDetailPage';
@@ -12,7 +13,7 @@ import { StaffModal } from './components/modals/StaffModal';
 export default function App() {
   const { currentUser, isStaff, logout, checkAuth } = useAuth();
   
-  const [currentView, setCurrentView] = useState('categories'); // 'categories' | 'subcategory' | 'thread'
+  const [currentView, setCurrentView] = useState('categories');
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [selectedThread, setSelectedThread] = useState(null);
 
@@ -21,7 +22,6 @@ export default function App() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
 
-  // Parse URL to resolve view & IDs
   const parseRouteFromUrl = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
     const path = window.location.pathname;
@@ -43,14 +43,12 @@ export default function App() {
     }
   }, []);
 
-  // Handle Initial Load & PopState (Browser Back/Forward)
   useEffect(() => {
     parseRouteFromUrl();
     window.addEventListener('popstate', parseRouteFromUrl);
     return () => window.removeEventListener('popstate', parseRouteFromUrl);
   }, [parseRouteFromUrl]);
 
-  // Handle OAuth Callback & Email Verification redirect
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('mode') === 'verifyEmail') {
@@ -74,7 +72,6 @@ export default function App() {
     }
   }, [currentUser, checkAuth]);
 
-  // Navigation Handlers
   const navigateToCategories = () => {
     window.history.pushState({}, '', '/');
     setSelectedSubcategory(null);
@@ -135,16 +132,15 @@ export default function App() {
                   <i className="fa-solid fa-user-shield"></i> ModView Panel
                 </button>
               )}
-              <img
-                className="avatar"
-                style={{ width: '38px', height: '38px', margin: 0, cursor: 'pointer' }}
-                src={currentUser.avatarUrl || 'https://via.placeholder.com/38'}
-                alt="Avatar"
+              <Avatar
+                src={currentUser.avatarUrl}
+                name={currentUser.displayName}
+                size={38}
                 onClick={() => setProfileModalOpen(true)}
               />
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }} onClick={() => setProfileModalOpen(true)}>
-                  {currentUser.displayName}
+                  {formatAuthorName(currentUser.displayName)}
                 </div>
                 <span className={`role-badge role-${currentUser.role}`}>{currentUser.roleTag || currentUser.role}</span>
               </div>
