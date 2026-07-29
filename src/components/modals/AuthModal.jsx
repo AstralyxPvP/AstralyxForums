@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Turnstile from '../Turnstile';
 
-export default function AuthModal({ isOpen, onClose, activeTab, setActiveTab, onAuthSuccess }) {
+export function AuthModal({ isOpen, onClose, activeTab, setActiveTab, onAuthSuccess }) {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
@@ -41,7 +41,6 @@ export default function AuthModal({ isOpen, onClose, activeTab, setActiveTab, on
       onClose();
     } catch (err) {
       setError(err.message);
-      // Reset Turnstile token on failure
       setTurnstileToken('');
       if (window.turnstile) window.turnstile.reset();
     } finally {
@@ -70,7 +69,6 @@ export default function AuthModal({ isOpen, onClose, activeTab, setActiveTab, on
       handleTabSwitch('login');
     } catch (err) {
       setError(err.message);
-      // Reset Turnstile token on failure
       setTurnstileToken('');
       if (window.turnstile) window.turnstile.reset();
     } finally {
@@ -83,12 +81,14 @@ export default function AuthModal({ isOpen, onClose, activeTab, setActiveTab, on
       <div className="modal">
         <div className="modal-tabs">
           <button
+            type="button"
             className={`tab-btn ${activeTab === 'login' ? 'active' : ''}`}
             onClick={() => handleTabSwitch('login')}
           >
             <i className="fa-solid fa-key"></i> Log In
           </button>
           <button
+            type="button"
             className={`tab-btn ${activeTab === 'register' ? 'active' : ''}`}
             onClick={() => handleTabSwitch('register')}
           >
@@ -123,7 +123,6 @@ export default function AuthModal({ isOpen, onClose, activeTab, setActiveTab, on
               />
             </div>
 
-            {/* Turnstile Widget for Login */}
             <Turnstile
               key="login-turnstile"
               onVerify={(token) => setTurnstileToken(token)}
@@ -166,7 +165,6 @@ export default function AuthModal({ isOpen, onClose, activeTab, setActiveTab, on
               />
             </div>
 
-            {/* Turnstile Widget for Register */}
             <Turnstile
               key="register-turnstile"
               onVerify={(token) => setTurnstileToken(token)}
@@ -191,3 +189,5 @@ export default function AuthModal({ isOpen, onClose, activeTab, setActiveTab, on
     </div>
   );
 }
+
+export default AuthModal;
