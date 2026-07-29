@@ -69,3 +69,6 @@ export const MarkdownToolbar = ({ targetId }) => {
     </div>
   );
 };
+
+// Add default export to support both import styles
+export default MarkdownToolbar;
