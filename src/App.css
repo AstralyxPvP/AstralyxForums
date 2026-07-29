@@ -551,3 +551,83 @@ body::before {
   .brand-top { font-size: 0.74rem; }
   .brand-sub { font-size: 0.54rem; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   MODVIEW / STAFF PANEL
+═══════════════════════════════════════════════════════ */
+/* ModView Wide Modal Container */
+.modal.modal-wide {
+  max-width: 850px;
+}
+
+/* User Card Container */
+.mod-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-md);
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.2s var(--ease);
+}
+
+.mod-card:hover {
+  border-color: rgba(255, 215, 0, 0.35);
+}
+
+.mod-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+/* Moderation Action Buttons Grid */
+.mod-actions-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(200, 16, 46, 0.18);
+}
+
+/* Warning History Items */
+.warning-item {
+  background: rgba(255, 215, 0, 0.08);
+  border-left: 3px solid var(--accent-gold);
+  padding: 0.5rem 0.8rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.4rem;
+  border-radius: var(--r-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Status Badges (Banned / Muted) */
+.status-badge {
+  font-family: var(--font-code);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.badge-banned {
+  background: rgba(200, 16, 46, 0.2);
+  color: #ff6b81;
+  border: 1px solid var(--accent-red);
+}
+
+.badge-muted {
+  background: rgba(255, 121, 198, 0.15);
+  color: #ff79c6;
+  border: 1px solid rgba(255, 121, 198, 0.4);
+}

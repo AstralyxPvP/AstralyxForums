@@ -154,9 +154,6 @@ export const StaffModal = ({ isOpen, onClose }) => {
                           <div style={{ fontWeight: 800, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             {u.displayName} <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85rem' }}>(@{u.username})</span>
                           </div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                            Email: <strong>{u.email}</strong> • Last IP: <code>{u.lastIp || 'N/A'}</code>
-                          </div>
                           <div style={{ marginTop: '0.4rem', display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
                             <span className={`role-badge role-${u.role}`}>{u.roleTag || u.role}</span>
                             {u.isBanned && <span className="status-badge badge-banned"><i className="fa-solid fa-ban"></i> Banned</span>}
