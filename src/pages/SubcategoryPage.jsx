@@ -1,43 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../api';
+import { apiFetch, SITE_ORIGIN } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { CreateThreadModal } from '../components/modals/CreateModals';
 
 export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
   const { currentUser } = useAuth();
   const [threads, setThreads] = useState([]);
+  const [subcatName, setSubcatName] = useState(subcategory.name || '');
   const [loading, setLoading] = useState(true);
   const [isThreadModalOpen, setIsThreadModalOpen] = useState(false);
 
-  const fetchThreads = async () => {
-    setLoading(true);
-    try {
-      const data = await apiFetch(`/api/subcategories/${subcategory.id}/threads`);
-      setThreads(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchThreads = async () => {
+      setLoading(true);
+      try {
+        const data = await apiFetch(`/api/subcategories/${subcategory.id}/threads`);
+        setThreads(data);
+
+        // If visited directly via link without pre-stored name
+        if (!subcatName && data.length > 0) {
+          setSubcatName('Discussion Board');
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchThreads();
-  }, [subcategory.id]);
+  }, [subcategory.id, subcatName]);
+
+  const handleCopyShareLink = () => {
+    const shareUrl = `${SITE_ORIGIN}/?subcat=${subcategory.id}`;
+    navigator.clipboard.writeText(shareUrl);
+    alert('Section permalink copied to clipboard!');
+  };
 
   return (
     <div>
       <div className="breadcrumb">
-        <span onClick={onBack}><i className="fa-solid fa-house"></i> Forums</span> &gt; <span>{subcategory.name}</span>
+        <span onClick={onBack}><i className="fa-solid fa-house"></i> Forums</span> &gt; <span>{subcatName || 'Subcategory'}</span>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeights: '700', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h2>{subcategory.name}</h2>
-        {currentUser && !currentUser.isMuted && (
-          <button className="btn btn-primary" onClick={() => setIsThreadModalOpen(true)}>
-            <i className="fa-solid fa-plus"></i> New Thread
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h2>{subcatName || 'Subcategory'}</h2>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-sm" onClick={handleCopyShareLink} title="Share Link">
+            <i className="fa-solid fa-share-nodes"></i> Share
           </button>
-        )}
+          {currentUser && !currentUser.isMuted && (
+            <button className="btn btn-primary" onClick={() => setIsThreadModalOpen(true)}>
+              <i className="fa-solid fa-plus"></i> New Thread
+            </button>
+          )}
+        </div>
       </div>
 
       {currentUser && currentUser.isMuted && (
@@ -71,7 +88,13 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
         isOpen={isThreadModalOpen}
         subcategoryId={subcategory.id}
         onClose={() => setIsThreadModalOpen(false)}
-        onSuccess={fetchThreads}
+        onSuccess={() => {
+          const fetchThreads = async () => {
+            const data = await apiFetch(`/api/subcategories/${subcategory.id}/threads`);
+            setThreads(data);
+          };
+          fetchThreads();
+        }}
       />
     </div>
   );
