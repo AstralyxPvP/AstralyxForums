@@ -3,7 +3,6 @@ import { apiFetch } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 
 export function AuthModal({ initialTab = 'login', isOpen = true, onClose, activeTab, setActiveTab }) {
-  // Support both 'tab' / 'initialTab' and 'activeTab' props seamlessly
   const currentTab = activeTab || initialTab;
   const [tab, setTab] = useState(currentTab);
 
@@ -15,9 +14,12 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
 
   const { checkAuth } = useAuth();
   
-  const turnstileRef = useRef(null);
+  // Dedicated Turnstile containers for each form tab
+  const loginTurnstileRef = useRef(null);
+  const registerTurnstileRef = useRef(null);
   const turnstileWidgetId = useRef(null);
   const [turnstileToken, setTurnstileToken] = useState('');
+
   const googleBtnRef = useRef(null);
 
   // Sync external tab changes if controlled by parent
@@ -28,18 +30,22 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
   const handleTabSwitch = (newTab) => {
     setTab(newTab);
     if (setActiveTab) setActiveTab(newTab);
-    setTurnstileToken('');
+    setTurnstileToken(''); // Clear token when switching tabs
   };
 
-  // --- Cloudflare Turnstile Integration (with auto-polling) ---
+  // --- Cloudflare Turnstile Integration (Handles Login & Register) ---
   useEffect(() => {
     let isMounted = true;
     let intervalId = null;
 
     const renderTurnstile = () => {
-      if (!isMounted || !turnstileRef.current || !window.turnstile) return;
+      if (!isMounted || !window.turnstile) return;
 
-      // Clean up previous widget instance if tab switches
+      // Select target container based on current active tab
+      const targetContainer = tab === 'login' ? loginTurnstileRef.current : registerTurnstileRef.current;
+      if (!targetContainer) return;
+
+      // Cleanup existing widget instance if switching tabs
       if (turnstileWidgetId.current !== null) {
         try {
           window.turnstile.remove(turnstileWidgetId.current);
@@ -49,10 +55,10 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
         }
       }
 
-      turnstileRef.current.innerHTML = '';
+      targetContainer.innerHTML = '';
 
       try {
-        turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
+        turnstileWidgetId.current = window.turnstile.render(targetContainer, {
           sitekey: '0x4AAAAAADWtJVafyNps0ZGt',
           theme: 'dark',
           callback: (token) => {
@@ -95,7 +101,7 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
     };
   }, [tab]);
 
-  // --- Google Sign-In Integration (with auto-polling) ---
+  // --- Google Sign-In Integration ---
   useEffect(() => {
     let intervalId = null;
 
@@ -237,8 +243,8 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
               <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
             </div>
 
-            {/* Turnstile Container */}
-            <div ref={turnstileRef} style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0', minHeight: '65px' }}></div>
+            {/* Dedicated Turnstile Container for Login */}
+            <div ref={loginTurnstileRef} style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0', minHeight: '65px' }}></div>
 
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
               <i className="fa-solid fa-right-to-bracket"></i> Log In
@@ -259,8 +265,8 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
               <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} required />
             </div>
 
-            {/* Turnstile Container */}
-            <div ref={turnstileRef} style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0', minHeight: '65px' }}></div>
+            {/* Dedicated Turnstile Container for Register */}
+            <div ref={registerTurnstileRef} style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0', minHeight: '65px' }}></div>
 
             <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
               <i className="fa-solid fa-user-check"></i> Create Account
@@ -283,5 +289,4 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
   );
 }
 
-// Support both named and default exports so Vite imports never break
 export default AuthModal;
