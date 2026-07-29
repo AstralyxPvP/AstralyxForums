@@ -1,26 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { apiFetch } from '../api';
+import { useAuth } from '../context/AuthContext';
 
-export default function VerifyEmailPage() {
+export const VerifyEmailPage = () => {
   const { currentUser, checkAuth, logout } = useAuth();
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
-    let interval;
+    let timer;
     if (cooldown > 0) {
-      interval = setInterval(() => setCooldown((c) => c - 1), 1000);
+      timer = setInterval(() => setCooldown((prev) => prev - 1), 1000);
     }
-    return () => clearInterval(interval);
+    return () => clearInterval(timer);
   }, [cooldown]);
 
-  const triggerResend = async () => {
+  const handleResend = async () => {
     try {
       const res = await apiFetch('/api/auth/resend-verification', { method: 'POST' });
-      alert(res.message || 'Verification link sent! Check your inbox and SPAM folder.');
+      alert(res.message || 'Verification link dispatched! Check your inbox and SPAM folder.');
       setCooldown(60);
     } catch (err) {
       alert(err.message);
+      if (err.message.includes('second(s)')) {
+        const match = err.message.match(/(\d+)\s*second/);
+        if (match && match[1]) setCooldown(parseInt(match[1]));
+      }
     }
   };
 
@@ -35,12 +39,12 @@ export default function VerifyEmailPage() {
 
       <div className="spam-notice">
         <i className="fa-solid fa-triangle-exclamation"></i> <strong>Can't find the email?</strong><br />
-        Please check your <strong>SPAM</strong> or <strong>Junk</strong> folder!
+        Please check your <strong>SPAM</strong> or <strong>Junk</strong> folder! Email providers filter automated verification links.
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1.5rem' }}>
-        <button className="btn btn-primary" onClick={triggerResend} disabled={cooldown > 0}>
-          <i className="fa-solid fa-paper-plane"></i> {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Verification Email'}
+        <button className="btn btn-primary" onClick={handleResend} disabled={cooldown > 0}>
+          {cooldown > 0 ? <><i className="fa-solid fa-clock"></i> Resend in {cooldown}s</> : <><i className="fa-solid fa-paper-plane"></i> Resend Verification Email</>}
         </button>
         <button className="btn" onClick={checkAuth}>
           <i className="fa-solid fa-arrows-rotate"></i> I've Verified, Refresh Status
@@ -51,4 +55,4 @@ export default function VerifyEmailPage() {
       </div>
     </div>
   );
-}
+};
