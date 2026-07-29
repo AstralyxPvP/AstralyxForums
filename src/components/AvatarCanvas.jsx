@@ -1,9 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { apiFetch } from '../api';
+import { useAuth } from '../context/AuthContext';
 
-export default function AvatarCanvas({ onUploadSuccess }) {
+export const AvatarCanvas = ({ onClose }) => {
+  const { checkAuth } = useAuth();
   const canvasRef = useRef(null);
-  const [rawImage, setRawImage] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [rawImage, setRawImage] = useState(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -16,16 +19,16 @@ export default function AvatarCanvas({ onUploadSuccess }) {
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        setRawImage(img);
         setZoom(1);
         setOffset({ x: 0, y: 0 });
+        setRawImage(img);
       };
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
   };
 
-  const drawCanvas = () => {
+  const draw = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -45,7 +48,7 @@ export default function AvatarCanvas({ onUploadSuccess }) {
   };
 
   useEffect(() => {
-    drawCanvas();
+    draw();
   }, [rawImage, zoom, offset]);
 
   const handleMouseDown = (e) => {
@@ -61,7 +64,7 @@ export default function AvatarCanvas({ onUploadSuccess }) {
 
   const handleMouseUp = () => setIsDragging(false);
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!rawImage) return alert('Please select an image first.');
 
     const exportCanvas = document.createElement('canvas');
@@ -81,38 +84,58 @@ export default function AvatarCanvas({ onUploadSuccess }) {
     ctx.restore();
 
     exportCanvas.toBlob(async (blob) => {
-      if (!blob) return alert('Failed to generate image blob.');
-      onUploadSuccess(blob);
+      if (!blob) return alert('Failed to generate WebP blob.');
+
+      const formData = new FormData();
+      formData.append('avatar', blob, 'avatar.webp');
+
+      try {
+        await apiFetch('/api/user/avatar', { method: 'POST', body: formData });
+        alert('Avatar updated successfully!');
+        await checkAuth();
+        if (onClose) onClose();
+      } catch (err) {
+        alert('Avatar upload error: ' + err.message);
+      }
     }, 'image/webp', 0.9);
   };
 
   return (
-    <div className="canvas-container">
-      <input type="file" accept="image/*" onChange={handleFileChange} />
-      <canvas
-        ref={canvasRef}
-        id="avatarCanvas"
-        width="200"
-        height="200"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      />
-      <div className="canvas-controls">
-        <label style={{ fontSize: '0.8rem' }}>Zoom:</label>
-        <input
-          type="range"
-          min="0.5"
-          max="3"
-          step="0.1"
-          value={zoom}
-          onChange={(e) => setZoom(parseFloat(e.target.value))}
-        />
+    <div>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+        Select an image, adjust crop/scale using the canvas, and save. Exported as WebP (max 700x700).
+      </p>
+      <div className="form-group" style={{ marginTop: '1rem' }}>
+        <input type="file" accept="image/*" onChange={handleFileChange} />
       </div>
-      <button type="button" className="btn btn-primary" style={{ width: '100%' }} onClick={handleUpload}>
+
+      <div className="canvas-container">
+        <canvas
+          id="avatarCanvas"
+          ref={canvasRef}
+          width="200"
+          height="200"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        />
+        <div className="canvas-controls">
+          <label style={{ fontSize: '0.8rem' }}>Zoom:</label>
+          <input
+            type="range"
+            min="0.5"
+            max="3"
+            step="0.1"
+            value={zoom}
+            onChange={(e) => setZoom(parseFloat(e.target.value))}
+          />
+        </div>
+      </div>
+
+      <button type="button" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} onClick={handleUpload}>
         <i className="fa-solid fa-upload"></i> Upload Canvas Avatar
       </button>
     </div>
   );
-}
+};
