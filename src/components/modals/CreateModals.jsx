@@ -234,6 +234,42 @@ export const CreateThreadModal = ({ isOpen, subcategory, subcategoryId, onClose,
   // Support Ticket Specific States
   const [supportDescription, setSupportDescription] = useState('');
 
+  // --------------------------------------------------------------------------
+  // SMART TYPE DETECTION (DB FLAGS + NAME FALLBACK)
+  // --------------------------------------------------------------------------
+  const targetSubId = subcategory?.id || subcategoryId;
+  const subName = (subcategory?.name || '').toLowerCase();
+  const ticketType = (subcategory?.ticketType || subcategory?.ticket_type || '').toLowerCase();
+  const isTicketFlag = Boolean(subcategory?.isTicket || subcategory?.is_ticket);
+
+  // Detects Bug Report via DB flag OR subcategory name
+  const isBugReport = 
+    (isTicketFlag && ticketType === 'bug') || 
+    subName.includes('bug');
+
+  // Detects Support Ticket via DB flag OR subcategory name
+  const isSupportTicket = 
+    !isBugReport && (
+      isTicketFlag || 
+      subName.includes('support') || 
+      subName.includes('ticket')
+    );
+
+  const isTicket = isBugReport || isSupportTicket;
+
+  // Clear fields whenever modal opens or closes
+  useEffect(() => {
+    if (!isOpen) {
+      setTitle('');
+      setContent('');
+      setMcUsername('');
+      setMcVersion('');
+      setBugDescription('');
+      setEvidence('');
+      setSupportDescription('');
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) onClose();
@@ -242,22 +278,7 @@ export const CreateThreadModal = ({ isOpen, subcategory, subcategoryId, onClose,
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  const targetSubId = subcategory?.id || subcategoryId;
   if (!isOpen || !targetSubId) return null;
-
-  const isTicket = !!subcategory?.isTicket;
-  const isBugReport = isTicket && subcategory?.ticketType === 'bug';
-  const isSupportTicket = isTicket && subcategory?.ticketType !== 'bug';
-
-  const resetFields = () => {
-    setTitle('');
-    setContent('');
-    setMcUsername('');
-    setMcVersion('');
-    setBugDescription('');
-    setEvidence('');
-    setSupportDescription('');
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -291,7 +312,6 @@ ${evidence.trim()}`;
         })
       });
 
-      resetFields();
       onSuccess();
       onClose();
     } catch (err) {
@@ -313,7 +333,7 @@ ${evidence.trim()}`;
         </h2>
 
         <form onSubmit={handleSubmit}>
-          {/* Title (Always Required) */}
+          {/* Title Field */}
           <div className="form-group">
             <label>Title</label>
             <input 
@@ -329,7 +349,7 @@ ${evidence.trim()}`;
             />
           </div>
 
-          {/* 🐛 BUG REPORT FORM FIELDS */}
+          {/* 🐛 BUG REPORT FIELDS */}
           {isBugReport && (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -382,7 +402,7 @@ ${evidence.trim()}`;
             </>
           )}
 
-          {/* 🎧 SUPPORT TICKET FORM FIELDS */}
+          {/* 🎧 SUPPORT TICKET FIELDS */}
           {isSupportTicket && (
             <div className="form-group md-textarea-container">
               <label>Description (Markdown Supported)</label>
@@ -398,7 +418,7 @@ ${evidence.trim()}`;
             </div>
           )}
 
-          {/* 💬 REGULAR THREAD FORM FIELDS */}
+          {/* 💬 REGULAR THREAD FIELDS */}
           {!isTicket && (
             <div className="form-group md-textarea-container">
               <label>Content (Markdown Supported)</label>

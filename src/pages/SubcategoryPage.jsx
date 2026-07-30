@@ -7,54 +7,60 @@ import { TicketSubmissionForm } from '../components/TicketSubmissionForm';
 export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenProfile }) => {
   const { currentUser } = useAuth();
   const [threads, setThreads] = useState([]);
-  const [subcatName, setSubcatName] = useState(subcategory?.name || '');
+  const [subcatData, setSubcatData] = useState(subcategory || {});
   const [loading, setLoading] = useState(true);
   const [isThreadModalOpen, setIsThreadModalOpen] = useState(false);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
   useEffect(() => {
-    const fetchThreads = async () => {
+    const loadSubcategoryAndThreads = async () => {
       setLoading(true);
       try {
-        const data = await apiFetch(`/api/subcategories/${subcategory.id}/threads`);
-        setThreads(data);
+        if (subcategory?.id) {
+          // If subcategory name or ticket flags are missing, fetch fresh subcategory data
+          if (!subcategory?.name || subcategory?.isTicket === undefined) {
+            const freshSub = await apiFetch(`/api/subcategories/${subcategory.id}`);
+            if (freshSub && freshSub.id) setSubcatData(freshSub);
+          } else {
+            setSubcatData(subcategory);
+          }
 
-        if (!subcatName && data.length > 0) {
-          setSubcatName('Discussion Board');
+          const data = await apiFetch(`/api/subcategories/${subcategory.id}/threads`);
+          setThreads(data);
         }
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load threads:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    if (subcategory?.id) {
-      fetchThreads();
-    }
-  }, [subcategory.id]);
+    loadSubcategoryAndThreads();
+  }, [subcategory?.id]);
 
   const handleCopyShareLink = () => {
-    const shareUrl = `${SITE_ORIGIN}/?subcat=${subcategory.id}`;
+    const shareUrl = `${SITE_ORIGIN}/?subcat=${subcatData.id}`;
     navigator.clipboard.writeText(shareUrl);
     alert('Section permalink copied to clipboard!');
   };
 
-  // Determine icon class & accent color matching CategoriesPage
+  // Smart Detection for Icons & UI Layout
+  const subName = (subcatData?.name || '').toLowerCase();
+  const isBugSub = (subcatData?.isTicket && subcatData?.ticketType === 'bug') || subName.includes('bug');
+  const isTicketSub = subcatData?.isTicket || subName.includes('ticket') || subName.includes('support') || isBugSub;
+
   let iconClass = 'fa-comments';
   let iconColor = 'inherit';
 
-  if (subcategory?.isAnnouncement) {
+  if (subcatData?.isAnnouncement) {
     iconClass = 'fa-bullhorn';
     iconColor = 'var(--accent-gold)';
-  } else if (subcategory?.isTicket) {
-    if (subcategory?.ticketType === 'bug') {
-      iconClass = 'fa-bug';
-      iconColor = '#ef4444';
-    } else {
-      iconClass = 'fa-headset';
-      iconColor = '#60a5fa';
-    }
+  } else if (isBugSub) {
+    iconClass = 'fa-bug';
+    iconColor = '#ef4444';
+  } else if (isTicketSub) {
+    iconClass = 'fa-headset';
+    iconColor = '#60a5fa';
   }
 
   if (loading) {
@@ -65,10 +71,10 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
     );
   }
 
-  if (isCreatingTicket && subcategory?.isTicket) {
+  if (isCreatingTicket && isTicketSub) {
     return (
       <TicketSubmissionForm 
-        subcategory={subcategory}
+        subcategory={subcatData}
         onSuccess={(id, title) => onSelectThread(id, title)}
         onCancel={() => setIsCreatingTicket(false)}
       />
@@ -81,13 +87,13 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
         <span onClick={onBack} style={{ cursor: 'pointer' }}>
           <i className="fa-solid fa-house"></i> Forums
         </span>{' '}
-        &gt; <span>{subcatName || 'Subcategory'}</span>
+        &gt; <span>{subcatData.name || 'Subcategory'}</span>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center' }}>
           <i className={`fa-solid ${iconClass}`} style={{ color: iconColor, marginRight: '0.6rem' }}></i>
-          {subcatName || 'Subcategory'}
+          {subcatData.name || 'Subcategory'}
         </h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn-sm" onClick={handleCopyShareLink} title="Share Link">
@@ -96,9 +102,9 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
           {currentUser && !currentUser.isMuted && (
             <button 
               className="btn btn-primary btn-sm" 
-              onClick={() => subcategory?.isTicket ? setIsCreatingTicket(true) : setIsThreadModalOpen(true)}
+              onClick={() => setIsThreadModalOpen(true)}
             >
-              <i className="fa-solid fa-plus"></i> {subcategory?.isTicket ? 'Open New Ticket' : 'New Thread'}
+              <i className="fa-solid fa-plus"></i> {isTicketSub ? (isBugSub ? 'Submit Bug Report' : 'Open New Ticket') : 'New Thread'}
             </button>
           )}
         </div>
@@ -123,7 +129,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
         >
           <i className="fa-solid fa-volume-xmark" style={{ fontSize: '1rem' }}></i>
           <span>
-            Your account is currently <strong>muted</strong>. {subcategory?.isTicket ? 'Ticket creation' : 'Thread creation'} is disabled. {currentUser.muteReason ? `Reason: ${currentUser.muteReason}` : ''}
+            Your account is currently <strong>muted</strong>. {isTicketSub ? 'Ticket creation' : 'Thread creation'} is disabled. {currentUser.muteReason ? `Reason: ${currentUser.muteReason}` : ''}
           </span>
         </div>
       )}
@@ -131,7 +137,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
       {threads.length === 0 ? (
         <div className="forum-card" style={{ padding: '2.5rem', textAlign: 'center' }}>
           <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-code)', fontSize: '0.85rem', margin: 0 }}>
-            {subcategory?.isTicket ? 'No tickets here yet.' : 'No threads here yet. Be the first to start a discussion!'}
+            {isTicketSub ? 'No tickets here yet.' : 'No threads here yet. Be the first to start a discussion!'}
           </p>
         </div>
       ) : (
@@ -190,15 +196,12 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
 
       <CreateThreadModal
         isOpen={isThreadModalOpen}
-        subcategoryId={subcategory.id}
-        subcategory={subcategory}
+        subcategoryId={subcatData.id}
+        subcategory={subcatData}
         onClose={() => setIsThreadModalOpen(false)}
-        onSuccess={() => {
-          const fetchThreads = async () => {
-            const data = await apiFetch(`/api/subcategories/${subcategory.id}/threads`);
-            setThreads(data);
-          };
-          fetchThreads();
+        onSuccess={async () => {
+          const data = await apiFetch(`/api/subcategories/${subcatData.id}/threads`);
+          setThreads(data);
         }}
       />
     </div>
