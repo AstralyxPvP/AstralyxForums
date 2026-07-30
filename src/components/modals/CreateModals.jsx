@@ -89,12 +89,14 @@ export const CreateCategoryModal = ({ isOpen, onClose, onSuccess }) => {
 };
 
 // ============================================================================
-// CREATE SUBCATEGORY MODAL (WITH BACKDROP & ESCAPE CLOSE)
+// CREATE SUBCATEGORY MODAL (WITH TICKET & BUG REPORT SUPPORT)
 // ============================================================================
 export const CreateSubcategoryModal = ({ isOpen, categoryId, onClose, onSuccess }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isAnnouncement, setIsAnnouncement] = useState(false);
+  const [isTicket, setIsTicket] = useState(false);
+  const [ticketType, setTicketType] = useState('support');
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -112,11 +114,20 @@ export const CreateSubcategoryModal = ({ isOpen, categoryId, onClose, onSuccess 
     try {
       await apiFetch('/api/subcategories', {
         method: 'POST',
-        body: JSON.stringify({ categoryId, name, description, isAnnouncement })
+        body: JSON.stringify({ 
+          categoryId, 
+          name, 
+          description, 
+          isAnnouncement,
+          isTicket,
+          ticketType: isTicket ? ticketType : null
+        })
       });
       setName('');
       setDescription('');
       setIsAnnouncement(false);
+      setIsTicket(false);
+      setTicketType('support');
       onSuccess();
       onClose();
     } catch (err) {
@@ -136,7 +147,7 @@ export const CreateSubcategoryModal = ({ isOpen, categoryId, onClose, onSuccess 
             <label>Subcategory Name</label>
             <input 
               type="text" 
-              placeholder="e.g. Bug Reports, Off-Topic" 
+              placeholder="e.g. Bug Reports, Support Tickets, Off-Topic" 
               value={name} 
               onChange={(e) => setName(e.target.value)} 
               required 
@@ -151,16 +162,51 @@ export const CreateSubcategoryModal = ({ isOpen, categoryId, onClose, onSuccess 
               onChange={(e) => setDescription(e.target.value)}
             ></textarea>
           </div>
+
+          {/* Announcement Option */}
           <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <input 
               type="checkbox" 
               id="subIsAnnouncement" 
               checked={isAnnouncement} 
-              onChange={(e) => setIsAnnouncement(e.target.checked)} 
+              onChange={(e) => {
+                setIsAnnouncement(e.target.checked);
+                if (e.target.checked) setIsTicket(false);
+              }} 
               style={{ width: 'auto' }} 
             />
             <label htmlFor="subIsAnnouncement" style={{ marginBottom: 0 }}>Restricted (Announcements Only)</label>
           </div>
+
+          {/* Ticket Option */}
+          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <input 
+              type="checkbox" 
+              id="subIsTicket" 
+              checked={isTicket} 
+              onChange={(e) => {
+                setIsTicket(e.target.checked);
+                if (e.target.checked) setIsAnnouncement(false);
+              }} 
+              style={{ width: 'auto' }} 
+            />
+            <label htmlFor="subIsTicket" style={{ marginBottom: 0 }}>Private Ticket Subcategory</label>
+          </div>
+
+          {/* Ticket Type Selector (Only visible if Private Ticket is enabled) */}
+          {isTicket && (
+            <div className="form-group" style={{ marginTop: '0.5rem', marginLeft: '1.5rem' }}>
+              <label>Ticket Access Control Level</label>
+              <select 
+                value={ticketType} 
+                onChange={(e) => setTicketType(e.target.value)}
+              >
+                <option value="support">General Support (Trial Staff+ Access)</option>
+                <option value="bug">Bug Report (Jr. Developer+ Access)</option>
+              </select>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
             <button type="button" className="btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary"><i className="fa-solid fa-check"></i> Create Subcategory</button>

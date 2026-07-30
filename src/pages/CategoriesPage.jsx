@@ -89,42 +89,47 @@ export const CategoriesPage = ({ onSelectSubcategory }) => {
               )}
             </div>
 
-            {cat.subcategories && cat.subcategories.map((sub) => (
-              <div key={sub.id} className="forum-card" onClick={() => onSelectSubcategory(sub.id, sub.name)}>
-                <div className="forum-info">
-                  <h3>
-                    <i className="fa-solid fa-comments"></i> {sub.name}{' '}
-                    {sub.isAnnouncement && (
-                      <span
-                        className="role-badge"
-                        style={{
-                          fontSize: '0.65rem',
-                          background: 'rgba(251, 191, 36, 0.15)',
-                          color: 'var(--accent-gold)',
-                          border: '1px solid rgba(251, 191, 36, 0.4)',
-                          marginLeft: '0.5rem',
-                          padding: '2px 6px'
-                        }}
-                      >
-                        <i className="fa-solid fa-bullhorn" style={{ marginRight: '0.25rem' }}></i> Announcements
-                      </span>
-                    )}
-                  </h3>
-                  <p>{sub.description || `Discuss topics related to ${sub.name}`}</p>
+            {cat.subcategories && cat.subcategories.map((sub) => {
+              // Determine leading icon and accent color based on subcategory type
+              let iconClass = 'fa-comments';
+              let iconColor = 'inherit';
+
+              if (sub.isAnnouncement) {
+                iconClass = 'fa-bullhorn';
+                iconColor = 'var(--accent-gold)';
+              } else if (sub.isTicket) {
+                if (sub.ticketType === 'bug') {
+                  iconClass = 'fa-bug';
+                  iconColor = '#ef4444';
+                } else {
+                  iconClass = 'fa-headset';
+                  iconColor = '#60a5fa';
+                }
+              }
+
+              return (
+                <div key={sub.id} className="forum-card" onClick={() => onSelectSubcategory(sub.id, sub.name)}>
+                  <div className="forum-info">
+                    <h3>
+                      <i className={`fa-solid ${iconClass}`} style={{ color: iconColor, marginRight: '0.5rem' }}></i> 
+                      {sub.name}
+                    </h3>
+                    <p>{sub.description || `Discuss topics related to ${sub.name}`}</p>
+                  </div>
+                  {canManageCategories() && (
+                    <button
+                      className="btn btn-xs btn-danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSub(sub.id);
+                      }}
+                    >
+                      <i className="fa-solid fa-trash"></i>
+                    </button>
+                  )}
                 </div>
-                {canManageCategories() && (
-                  <button
-                    className="btn btn-xs btn-danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteSub(sub.id);
-                    }}
-                  >
-                    <i className="fa-solid fa-trash"></i>
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))
       )}

@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch, SITE_ORIGIN, formatAuthorName } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { CreateThreadModal } from '../components/modals/CreateModals';
-import { TicketSubmissionForm } from '../components/TicketSubmissionForm'; // Corrected import path
+import { TicketSubmissionForm } from '../components/TicketSubmissionForm';
 
 export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenProfile }) => {
   const { currentUser } = useAuth();
   const [threads, setThreads] = useState([]);
-  const [subcatName, setSubcatName] = useState(subcategory.name || '');
+  const [subcatName, setSubcatName] = useState(subcategory?.name || '');
   const [loading, setLoading] = useState(true);
   const [isThreadModalOpen, setIsThreadModalOpen] = useState(false);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
@@ -29,14 +29,33 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
       }
     };
 
-    fetchThreads();
-  }, [subcategory.id, subcatName]);
+    if (subcategory?.id) {
+      fetchThreads();
+    }
+  }, [subcategory.id]);
 
   const handleCopyShareLink = () => {
     const shareUrl = `${SITE_ORIGIN}/?subcat=${subcategory.id}`;
     navigator.clipboard.writeText(shareUrl);
     alert('Section permalink copied to clipboard!');
   };
+
+  // Determine icon class & accent color matching CategoriesPage
+  let iconClass = 'fa-comments';
+  let iconColor = 'inherit';
+
+  if (subcategory?.isAnnouncement) {
+    iconClass = 'fa-bullhorn';
+    iconColor = 'var(--accent-gold)';
+  } else if (subcategory?.isTicket) {
+    if (subcategory?.ticketType === 'bug') {
+      iconClass = 'fa-bug';
+      iconColor = '#ef4444';
+    } else {
+      iconClass = 'fa-headset';
+      iconColor = '#60a5fa';
+    }
+  }
 
   if (loading) {
     return (
@@ -66,7 +85,8 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center' }}>
+          <i className={`fa-solid ${iconClass}`} style={{ color: iconColor, marginRight: '0.6rem' }}></i>
           {subcatName || 'Subcategory'}
         </h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
