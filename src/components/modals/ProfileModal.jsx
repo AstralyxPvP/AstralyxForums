@@ -171,3 +171,4 @@ export const ProfileModal = ({ isOpen, onClose }) => {
     </div>
   );
 };
+export default ProfileModal;
