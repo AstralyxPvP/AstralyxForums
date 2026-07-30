@@ -6,7 +6,7 @@ import { Avatar } from '../components/Avatar';
 import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { EditPostModal } from '../components/modals/EditPostModal';
 import { ReportModal } from '../components/modals/ReportModal';
-import { UserProfileModal } from '../components/modals/UserProfileModal';
+import UserProfileModal from '../components/modals/UserProfileModal';
 
 export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums, onBackToSubcategory, onOpenProfile }) => {
   const { currentUser, canManageCategories, checkAuth } = useAuth();
