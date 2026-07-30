@@ -163,3 +163,4 @@ export const UserProfilePage = ({ userId, onBackToForums, onOpenThread }) => {
     </div>
   );
 };
+export default UserProfileModal;
