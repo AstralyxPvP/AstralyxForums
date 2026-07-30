@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../api';
-import { MarkdownToolbar } from '../components/MarkdownToolbar';
+import { MarkdownToolbar } from './MarkdownToolbar';
 
 export const TicketSubmissionForm = ({ subcategory, onSuccess, onCancel }) => {
   const [title, setTitle] = useState('');

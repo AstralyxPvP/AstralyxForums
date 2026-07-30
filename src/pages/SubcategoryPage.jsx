@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch, SITE_ORIGIN, formatAuthorName } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { CreateThreadModal } from '../components/modals/CreateModals';
-import { TicketSubmissionForm } from '../components/TicketSubmissionForm'; // NEW
+import { TicketSubmissionForm } from '../components/TicketSubmissionForm'; // Corrected import path
 
-export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenProfile }) => { // Added onOpenProfile
+export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenProfile }) => {
   const { currentUser } = useAuth();
   const [threads, setThreads] = useState([]);
   const [subcatName, setSubcatName] = useState(subcategory.name || '');
   const [loading, setLoading] = useState(true);
   const [isThreadModalOpen, setIsThreadModalOpen] = useState(false);
-  const [isCreatingTicket, setIsCreatingTicket] = useState(false); // NEW
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
   useEffect(() => {
     const fetchThreads = async () => {
@@ -46,7 +46,6 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
     );
   }
 
-  // NEW: Ticket Submission View
   if (isCreatingTicket && subcategory?.isTicket) {
     return (
       <TicketSubmissionForm 
