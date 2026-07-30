@@ -752,3 +752,92 @@ body::after {
   font-family: var(--font-code);
   vertical-align: middle;
 }
+
+/* ═══════════════════════════════════════════════════════
+   NEW FEATURES: USER PROFILES & TICKET SYSTEM
+═══════════════════════════════════════════════════════ */
+
+/* --- Clickable Author Styles --- */
+.post-author-name[style*="cursor: pointer"]:hover,
+.meta-author:hover,
+.thread-meta strong[style*="cursor: pointer"]:hover {
+  color: var(--accent-gold) !important;
+  text-decoration: underline;
+  transition: all 0.2s var(--ease);
+}
+
+.post-author [style*="cursor: pointer"]:hover img,
+.post-author [style*="cursor: pointer"]:hover canvas {
+  box-shadow: 0 0 0 2px var(--accent-gold), 0 0 15px rgba(251, 191, 36, 0.4);
+  transform: scale(1.05);
+  transition: all 0.2s var(--ease);
+}
+
+/* --- Ticket System Styles --- */
+.closed-ticket-card {
+  border-color: var(--accent-green) !important;
+  opacity: 0.9;
+  position: relative;
+  overflow: hidden;
+}
+
+.closed-ticket-card::before {
+  content: 'ARCHIVED';
+  position: absolute;
+  top: 10px;
+  right: -30px;
+  background: var(--accent-green);
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 900;
+  padding: 2px 30px;
+  transform: rotate(45deg);
+  font-family: var(--font-code);
+  z-index: 10;
+}
+
+.ticket-status {
+  font-family: var(--font-code);
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+/* --- Profile Page Specifics --- */
+.hover-bright {
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.hover-bright:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: var(--accent-gold) !important;
+}
+
+/* Ignore list badge in tabs */
+.tab-btn span[style*="background: var(--accent-red)"] {
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+/* Form Groups for Tickets */
+.md-textarea-container label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 1.5rem;
+  }
+  
+  .post-card.main-post {
+    flex-direction: column;
+  }
+}

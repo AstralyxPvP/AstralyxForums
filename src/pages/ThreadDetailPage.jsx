@@ -8,17 +8,18 @@ import { EditPostModal } from '../components/modals/EditPostModal';
 import { ReportModal } from '../components/modals/ReportModal';
 import { UserProfileModal } from '../components/modals/UserProfileModal';
 
-export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums, onBackToSubcategory }) => {
+export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums, onBackToSubcategory, onOpenProfile }) => {
   const { currentUser, canManageCategories, checkAuth } = useAuth();
   const [threadData, setThreadData] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [replyContent, setReplyContent] = useState('');
+  const [subData, setSubData] = useState(null); // NEW
 
   const [editModalData, setEditModalData] = useState(null);
   const [reportModalData, setReportModalData] = useState(null);
 
-  // NEW: User profile modal state
+  // User profile modal state
   const [viewProfileUserId, setViewProfileUserId] = useState(null);
 
   const fetchThreadDetail = async () => {
@@ -27,6 +28,10 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
       const data = await apiFetch(`/api/threads/${threadId}/posts`);
       setThreadData(data.thread);
       setPosts(data.posts);
+      
+      // Fetch subcategory info to check ticket status
+      const sData = await apiFetch(`/api/subcategories/${data.thread.subcategoryId}`);
+      setSubData(sData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -50,6 +55,17 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
         method: 'PUT',
         body: JSON.stringify({ isLocked: !threadData.isLocked })
       });
+      fetchThreadDetail();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleCloseTicket = async () => { // NEW
+    if (!confirm('Close this ticket? It will be archived and locked.')) return;
+    try {
+      await apiFetch(`/api/threads/${threadId}/close`, { method: 'POST' });
+      alert('Ticket closed successfully.');
       fetchThreadDetail();
     } catch (err) {
       alert(err.message);
@@ -84,7 +100,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
     }
   };
 
-  // NEW: Ignore a user directly from a post
+  // Ignore a user directly from a post
   const handleIgnoreUser = async (targetUserId, targetName) => {
     if (!currentUser) return;
     if (!confirm(`Ignore ${targetName}? Their posts and threads will be hidden from you.`)) return;
@@ -94,7 +110,6 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
         body: JSON.stringify({ targetUserId })
       });
       await checkAuth();
-      // Re-fetch so the ignored posts disappear immediately
       fetchThreadDetail();
     } catch (err) {
       alert(err.message);
@@ -113,7 +128,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
     return (
       <div className="forum-card" style={{ padding: '2.5rem', textAlign: 'center', borderColor: 'var(--accent-red)' }}>
         <p style={{ color: 'var(--accent-danger)', fontFamily: 'var(--font-code)', fontSize: '0.85rem', margin: 0 }}>
-          <i className="fa-solid fa-circle-exclamation" style={{ marginRight: '0.5rem' }}></i> Thread not found.
+          <i className="fa-solid fa-circle-exclamation" style={{ marginRight: '0.5rem' }}></i> Thread not found or Access Denied.
         </p>
       </div>
     );
@@ -128,6 +143,10 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
   );
   const canEditMain = currentUser && (currentUser.id === threadData.authorId || currentUser.permissions?.full || canManageCategories());
 
+  // Ticket closure logic
+  const isStaff = currentUser && (canManageCategories() || currentUser.permissions?.full);
+  const canCloseTicket = subData?.isTicket && !threadData.isClosed && isStaff;
+
   return (
     <div>
       {/* Breadcrumb Navigation */}
@@ -136,18 +155,26 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
           <i className="fa-solid fa-house"></i> Forums
         </span>{' '}
         &gt;{' '}
-        <span onClick={() => onBackToSubcategory(threadData.subcategoryId, subcategory?.name || 'Section')} style={{ cursor: 'pointer' }}>
-          {subcategory?.name || 'Section'}
+        <span onClick={() => onBackToSubcategory(threadData.subcategoryId, subData?.name || 'Section')} style={{ cursor: 'pointer' }}>
+          {subData?.name || 'Section'}
         </span>{' '}
         &gt; <span>{displayTitle}</span>
       </div>
 
       {/* Thread Title Header Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
-          {displayTitle}
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {threadData.isClosed && <span className="role-badge" style={{ background: 'var(--accent-green)' }}>CLOSED TICKET</span>}
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            {displayTitle}
+          </h2>
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {canCloseTicket && (
+            <button className="btn btn-sm btn-success" onClick={handleCloseTicket}>
+              <i className="fa-solid fa-check-double"></i> Close Ticket
+            </button>
+          )}
           <button className="btn btn-sm" onClick={handleCopyShareLink} title="Share Permalinks">
             <i className="fa-solid fa-share-nodes"></i> Share
           </button>
@@ -161,20 +188,20 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
       </div>
 
       {/* Main Thread Original Post Card */}
-      <div className="post-card main-post">
+      <div className={`post-card main-post ${threadData.isClosed ? 'closed-ticket-card' : ''}`}>
         <div className="post-author">
-          {/* NEW: Clicking avatar or name opens the public profile */}
+          {/* Clicking avatar or name navigates to the public profile page */}
           <div
             style={{ cursor: 'pointer' }}
-            onClick={() => setViewProfileUserId(threadData.authorId)}
+            onClick={() => onOpenProfile(threadData.authorId)}
             title={`View ${mainAuthorName}'s profile`}
           >
             <Avatar src={threadData.authorAvatar} name={mainAuthorName} size={56} />
           </div>
           <div
             className="post-author-name"
-            style={{ cursor: 'pointer' }}
-            onClick={() => setViewProfileUserId(threadData.authorId)}
+            style={{ cursor: 'pointer', color: 'var(--accent-cyan)' }}
+            onClick={() => onOpenProfile(threadData.authorId)}
             title={`View ${mainAuthorName}'s profile`}
           >
             {mainAuthorName}
@@ -199,7 +226,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
                 </span>
               </div>
               <div className="post-header-right">
-                {/* NEW: Ignore button on main post (only for other users) */}
+                {/* Ignore button on main post (only for other users) */}
                 {currentUser && currentUser.id !== threadData.authorId && (
                   <button
                     className="btn btn-xs"
@@ -215,7 +242,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
                     <i className="fa-solid fa-flag"></i>
                   </button>
                 )}
-                {canEditMain && (
+                {canEditMain && !threadData.isClosed && (
                   <button className="btn btn-xs" onClick={() => setEditModalData({ threadId, postId: 'main', content: threadData.content })}>
                     <i className="fa-solid fa-pen"></i> Edit
                   </button>
@@ -237,7 +264,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
 
       {/* Comments List Header */}
       <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.15rem', fontWeight: 900, color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '1px', margin: '2rem 0 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-        <i className="fa-solid fa-comments" style={{ color: 'var(--accent-red)' }}></i> Comments ({posts.length})
+        <i className="fa-solid fa-comments" style={{ color: 'var(--accent-red)' }}></i> {subData?.isTicket ? 'Ticket Discussion' : 'Comments'} ({posts.length})
       </h3>
 
       {posts.length === 0 ? (
@@ -259,18 +286,17 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
           return (
             <div key={p.id} className="post-card">
               <div className="post-author">
-                {/* NEW: Clickable avatar/name opens public profile */}
                 <div
                   style={{ cursor: 'pointer' }}
-                  onClick={() => setViewProfileUserId(p.authorId)}
+                  onClick={() => onOpenProfile(p.authorId)}
                   title={`View ${commentAuthorName}'s profile`}
                 >
                   <Avatar src={p.authorAvatar} name={commentAuthorName} size={56} />
                 </div>
                 <div
                   className="post-author-name"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => setViewProfileUserId(p.authorId)}
+                  style={{ cursor: 'pointer', color: 'var(--accent-cyan)' }}
+                  onClick={() => onOpenProfile(p.authorId)}
                   title={`View ${commentAuthorName}'s profile`}
                 >
                   {commentAuthorName}
@@ -290,7 +316,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
                       </span>
                     </div>
                     <div className="post-header-right">
-                      {/* NEW: Ignore button on comments (only for other users) */}
+                      {/* Ignore button on comments (only for other users) */}
                       {currentUser && !isAuthor && (
                         <button
                           className="btn btn-xs"
@@ -306,7 +332,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
                           <i className="fa-solid fa-flag"></i>
                         </button>
                       )}
-                      {canEdit && (
+                      {canEdit && !threadData.isClosed && (
                         <button className="btn btn-xs" onClick={() => setEditModalData({ threadId, postId: p.id, content: p.content })}>
                           <i className="fa-solid fa-pen"></i>
                         </button>
@@ -330,7 +356,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
       )}
 
       {/* Reply Submission Area */}
-      {threadData.isLocked && (!currentUser || (!canManageCategories() && !currentUser.permissions?.full)) ? (
+      {threadData.isLocked ? (
         <div
           style={{
             background: 'rgba(251, 191, 36, 0.08)',
@@ -348,7 +374,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
             gap: '0.6rem'
           }}
         >
-          <i className="fa-solid fa-lock"></i> The comment section has been locked by staff.
+          <i className="fa-solid fa-lock"></i> {threadData.isClosed ? 'This ticket is closed and archived.' : 'The comment section has been locked by staff.'}
         </div>
       ) : currentUser && currentUser.isMuted ? (
         <div
@@ -374,7 +400,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
       ) : currentUser ? (
         <div style={{ marginTop: '2.5rem' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem' }}>
-            Leave a Comment
+            {subData?.isTicket ? 'Reply to Ticket' : 'Leave a Comment'}
           </h3>
           <form onSubmit={handleCreateReply}>
             <div className="form-group md-textarea-container">
@@ -389,7 +415,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
               />
             </div>
             <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
-              <i className="fa-solid fa-paper-plane"></i> Submit Comment
+              <i className="fa-solid fa-paper-plane"></i> {subData?.isTicket ? 'Submit Reply' : 'Submit Comment'}
             </button>
           </form>
         </div>
@@ -417,7 +443,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
         onClose={() => setReportModalData(null)}
       />
 
-      {/* NEW: Public User Profile Modal */}
+      {/* Public User Profile Modal (Fallback/Alternative) */}
       {viewProfileUserId && (
         <UserProfileModal
           userId={viewProfileUserId}

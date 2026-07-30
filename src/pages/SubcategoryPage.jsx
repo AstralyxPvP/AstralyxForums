@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch, SITE_ORIGIN, formatAuthorName } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { CreateThreadModal } from '../components/modals/CreateModals';
+import { TicketSubmissionForm } from '../components/TicketSubmissionForm'; // NEW
 
-export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
+export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenProfile }) => { // Added onOpenProfile
   const { currentUser } = useAuth();
   const [threads, setThreads] = useState([]);
   const [subcatName, setSubcatName] = useState(subcategory.name || '');
   const [loading, setLoading] = useState(true);
   const [isThreadModalOpen, setIsThreadModalOpen] = useState(false);
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false); // NEW
 
   useEffect(() => {
     const fetchThreads = async () => {
@@ -44,6 +46,17 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
     );
   }
 
+  // NEW: Ticket Submission View
+  if (isCreatingTicket && subcategory?.isTicket) {
+    return (
+      <TicketSubmissionForm 
+        subcategory={subcategory}
+        onSuccess={(id, title) => onSelectThread(id, title)}
+        onCancel={() => setIsCreatingTicket(false)}
+      />
+    );
+  }
+
   return (
     <div>
       <div className="breadcrumb">
@@ -62,8 +75,11 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
             <i className="fa-solid fa-share-nodes"></i> Share
           </button>
           {currentUser && !currentUser.isMuted && (
-            <button className="btn btn-primary btn-sm" onClick={() => setIsThreadModalOpen(true)}>
-              <i className="fa-solid fa-plus"></i> New Thread
+            <button 
+              className="btn btn-primary btn-sm" 
+              onClick={() => subcategory?.isTicket ? setIsCreatingTicket(true) : setIsThreadModalOpen(true)}
+            >
+              <i className="fa-solid fa-plus"></i> {subcategory?.isTicket ? 'Open New Ticket' : 'New Thread'}
             </button>
           )}
         </div>
@@ -88,7 +104,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
         >
           <i className="fa-solid fa-volume-xmark" style={{ fontSize: '1rem' }}></i>
           <span>
-            Your account is currently <strong>muted</strong>. Thread creation is disabled. {currentUser.muteReason ? `Reason: ${currentUser.muteReason}` : ''}
+            Your account is currently <strong>muted</strong>. {subcategory?.isTicket ? 'Ticket creation' : 'Thread creation'} is disabled. {currentUser.muteReason ? `Reason: ${currentUser.muteReason}` : ''}
           </span>
         </div>
       )}
@@ -96,7 +112,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
       {threads.length === 0 ? (
         <div className="forum-card" style={{ padding: '2.5rem', textAlign: 'center' }}>
           <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-code)', fontSize: '0.85rem', margin: 0 }}>
-            No threads here yet. Be the first to start a discussion!
+            {subcategory?.isTicket ? 'No tickets here yet.' : 'No threads here yet. Be the first to start a discussion!'}
           </p>
         </div>
       ) : (
@@ -116,6 +132,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
                 }}
               >
                 {t.isLocked && <i className="fa-solid fa-lock" style={{ color: 'var(--accent-gold)' }}></i>}
+                {t.isClosed && <span className="role-badge" style={{ background: 'var(--accent-green)', fontSize: '0.65rem' }}>CLOSED</span>}
                 <span>{t.title}</span>
               </h4>
               <div
@@ -130,12 +147,22 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread }) => {
                 }}
               >
                 <span>
-                  Started by <strong style={{ color: 'var(--text-main)' }}>{formatAuthorName(t.authorName)}</strong>
+                  Started by <strong 
+                    style={{ color: 'var(--accent-cyan)', cursor: 'pointer' }} 
+                    onClick={(e) => { e.stopPropagation(); onOpenProfile(t.authorId); }}
+                  >
+                    {formatAuthorName(t.authorName)}
+                  </strong>
                 </span>
                 <span className={`role-badge role-${t.authorRole}`}>
                   {t.authorRoleTag || t.authorRole}
                 </span>
                 <span>• {new Date(t.createdAt).toLocaleDateString()}</span>
+                {t.isTicket && (
+                  <span style={{ color: t.isClosed ? 'var(--accent-green)' : 'var(--accent-gold)', fontWeight: 700 }}>
+                    [{t.isClosed ? 'RESOLVED' : 'OPEN'}]
+                  </span>
+                )}
               </div>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { Avatar } from './components/Avatar';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { SubcategoryPage } from './pages/SubcategoryPage';
 import { ThreadDetailPage } from './pages/ThreadDetailPage';
+import { UserProfilePage } from './pages/UserProfilePage'; // NEW
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { AuthModal } from './components/modals/AuthModal';
 import { ProfileModal } from './components/modals/ProfileModal';
@@ -16,6 +17,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState('categories');
   const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [selectedThread, setSelectedThread] = useState(null);
+  const [selectedProfileId, setSelectedProfileId] = useState(null); // NEW
 
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authTab, setAuthTab] = useState('login');
@@ -29,6 +31,7 @@ export default function App() {
 
     const threadId = params.get('thread') || (path.startsWith('/thread/') ? path.split('/thread/')[1] : null);
     const subcatId = params.get('subcat') || (path.startsWith('/subcat/') ? path.split('/subcat/')[1] : null);
+    const userId = params.get('user') || (path.startsWith('/user/') ? path.split('/user/')[1] : null); // NEW
 
     if (threadId) {
       setSelectedThread((prev) => (prev?.id === threadId ? prev : { id: threadId, title: '' }));
@@ -37,9 +40,13 @@ export default function App() {
       setSelectedSubcategory((prev) => (prev?.id === subcatId ? prev : { id: subcatId, name: '' }));
       setSelectedThread(null);
       setCurrentView('subcategory');
+    } else if (userId) { // NEW
+      setSelectedProfileId(userId);
+      setCurrentView('profile');
     } else {
       setSelectedSubcategory(null);
       setSelectedThread(null);
+      setSelectedProfileId(null);
       setCurrentView('categories');
     }
   }, []);
@@ -77,6 +84,7 @@ export default function App() {
     window.history.pushState({}, '', '/');
     setSelectedSubcategory(null);
     setSelectedThread(null);
+    setSelectedProfileId(null);
     setCurrentView('categories');
   };
 
@@ -84,13 +92,23 @@ export default function App() {
     window.history.pushState({}, '', `/?subcat=${id}`);
     setSelectedSubcategory({ id, name });
     setSelectedThread(null);
+    setSelectedProfileId(null);
     setCurrentView('subcategory');
   };
 
   const navigateToThread = (threadId, title = '') => {
     window.history.pushState({}, '', `/?thread=${threadId}`);
     setSelectedThread({ id: threadId, title });
+    setSelectedProfileId(null);
     setCurrentView('thread');
+  };
+
+  const navigateToProfile = (userId) => { // NEW
+    window.history.pushState({}, '', `/?user=${userId}`);
+    setSelectedProfileId(userId);
+    setSelectedThread(null);
+    setSelectedSubcategory(null);
+    setCurrentView('profile');
   };
 
   const openAuth = (tab) => {
@@ -243,6 +261,7 @@ export default function App() {
             subcategory={selectedSubcategory}
             onBack={navigateToCategories}
             onSelectThread={(id, title) => navigateToThread(id, title)}
+            onOpenProfile={navigateToProfile} // NEW
           />
         )}
 
@@ -256,6 +275,15 @@ export default function App() {
               if (subId) navigateToSubcategory(subId, subName);
               else navigateToCategories();
             }}
+            onOpenProfile={navigateToProfile} // NEW
+          />
+        )}
+
+        {currentView === 'profile' && selectedProfileId && ( // NEW
+          <UserProfilePage
+            userId={selectedProfileId}
+            onBackToForums={navigateToCategories}
+            onOpenThread={(id, title) => navigateToThread(id, title)}
           />
         )}
       </div>
