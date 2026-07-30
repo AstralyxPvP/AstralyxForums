@@ -106,7 +106,6 @@ export const CreateSubcategoryModal = ({ isOpen, categoryId, onClose, onSuccess 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Guard: Do NOT render if modal is closed OR if categoryId is missing
   if (!isOpen || !categoryId) return null;
 
   const handleSubmit = async (e) => {
@@ -193,7 +192,7 @@ export const CreateSubcategoryModal = ({ isOpen, categoryId, onClose, onSuccess 
             <label htmlFor="subIsTicket" style={{ marginBottom: 0 }}>Private Ticket Subcategory</label>
           </div>
 
-          {/* Ticket Type Selector (Only visible if Private Ticket is enabled) */}
+          {/* Ticket Type Selector */}
           {isTicket && (
             <div className="form-group" style={{ marginTop: '0.5rem', marginLeft: '1.5rem' }}>
               <label>Ticket Access Control Level</label>
@@ -218,11 +217,22 @@ export const CreateSubcategoryModal = ({ isOpen, categoryId, onClose, onSuccess 
 };
 
 // ============================================================================
-// CREATE THREAD MODAL
+// CREATE THREAD / TICKET MODAL (DYNAMIC BUG & SUPPORT FIELDS)
 // ============================================================================
-export const CreateThreadModal = ({ isOpen, subcategoryId, onClose, onSuccess }) => {
+export const CreateThreadModal = ({ isOpen, subcategory, subcategoryId, onClose, onSuccess }) => {
+  // Shared States
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Bug Report Specific States
+  const [mcUsername, setMcUsername] = useState('');
+  const [mcVersion, setMcVersion] = useState('');
+  const [bugDescription, setBugDescription] = useState('');
+  const [evidence, setEvidence] = useState('');
+
+  // Support Ticket Specific States
+  const [supportDescription, setSupportDescription] = useState('');
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -232,21 +242,62 @@ export const CreateThreadModal = ({ isOpen, subcategoryId, onClose, onSuccess })
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen || !subcategoryId) return null;
+  const targetSubId = subcategory?.id || subcategoryId;
+  if (!isOpen || !targetSubId) return null;
+
+  const isTicket = !!subcategory?.isTicket;
+  const isBugReport = isTicket && subcategory?.ticketType === 'bug';
+  const isSupportTicket = isTicket && subcategory?.ticketType !== 'bug';
+
+  const resetFields = () => {
+    setTitle('');
+    setContent('');
+    setMcUsername('');
+    setMcVersion('');
+    setBugDescription('');
+    setEvidence('');
+    setSupportDescription('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
+    let finalContent = content;
+
+    if (isBugReport) {
+      finalContent = `**Minecraft Username:** ${mcUsername.trim()}
+**Minecraft Version:** ${mcVersion.trim()}
+
+---
+
+### 🐛 Bug Description
+${bugDescription.trim()}
+
+---
+
+### 📷 Evidence
+${evidence.trim()}`;
+    } else if (isSupportTicket) {
+      finalContent = supportDescription.trim();
+    }
+
     try {
-      await apiFetch(`/api/subcategories/${subcategoryId}/threads`, {
+      await apiFetch(`/api/subcategories/${targetSubId}/threads`, {
         method: 'POST',
-        body: JSON.stringify({ title, content })
+        body: JSON.stringify({ 
+          title: title.trim(), 
+          content: finalContent 
+        })
       });
-      setTitle('');
-      setContent('');
+
+      resetFields();
       onSuccess();
       onClose();
     } catch (err) {
-      alert(err.message);
+      alert(err.message || 'Failed to submit thread.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -255,34 +306,126 @@ export const CreateThreadModal = ({ isOpen, subcategoryId, onClose, onSuccess })
       className="modal-overlay" 
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="modal">
-        <h2><i className="fa-solid fa-pen-to-square"></i> Create New Thread</h2>
+      <div className="modal" style={{ maxWidth: isBugReport ? '650px' : '550px' }}>
+        <h2>
+          <i className={`fa-solid ${isBugReport ? 'fa-bug' : isSupportTicket ? 'fa-headset' : 'fa-pen-to-square'}`}></i>{' '}
+          {isBugReport ? 'Submit Bug Report' : isSupportTicket ? 'Open Support Ticket' : 'Create New Thread'}
+        </h2>
+
         <form onSubmit={handleSubmit}>
+          {/* Title (Always Required) */}
           <div className="form-group">
-            <label>Thread Title</label>
+            <label>Title</label>
             <input 
               type="text" 
-              placeholder="Enter thread title..." 
+              placeholder={
+                isBugReport ? "Brief summary of the bug..." : 
+                isSupportTicket ? "Brief summary of your issue..." : 
+                "Enter thread title..."
+              }
               value={title} 
               onChange={(e) => setTitle(e.target.value)} 
               required 
             />
           </div>
-          <div className="form-group md-textarea-container">
-            <label>Content (Markdown Supported)</label>
-            <MarkdownToolbar targetId="threadContent" />
-            <textarea 
-              id="threadContent" 
-              rows="6" 
-              placeholder="Write thread details here..." 
-              value={content} 
-              onChange={(e) => setContent(e.target.value)} 
-              required 
-            ></textarea>
-          </div>
+
+          {/* 🐛 BUG REPORT FORM FIELDS */}
+          {isBugReport && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group">
+                  <label>Minecraft Username</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Steve" 
+                    value={mcUsername} 
+                    onChange={(e) => setMcUsername(e.target.value)} 
+                    required 
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Minecraft Version</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. 1.20.4, Lunar Client" 
+                    value={mcVersion} 
+                    onChange={(e) => setMcVersion(e.target.value)} 
+                    required 
+                  />
+                </div>
+              </div>
+
+              <div className="form-group md-textarea-container">
+                <label>Bug Description (Markdown Supported)</label>
+                <MarkdownToolbar targetId="bugDescriptionModal" />
+                <textarea 
+                  id="bugDescriptionModal" 
+                  rows="4" 
+                  placeholder="Describe how to reproduce the bug step-by-step..." 
+                  value={bugDescription} 
+                  onChange={(e) => setBugDescription(e.target.value)} 
+                  required 
+                ></textarea>
+              </div>
+
+              <div className="form-group">
+                <label>Evidence</label>
+                <textarea 
+                  rows="2" 
+                  placeholder="Provide links to screenshots, Imgur, or YouTube videos..." 
+                  value={evidence} 
+                  onChange={(e) => setEvidence(e.target.value)} 
+                  required 
+                ></textarea>
+              </div>
+            </>
+          )}
+
+          {/* 🎧 SUPPORT TICKET FORM FIELDS */}
+          {isSupportTicket && (
+            <div className="form-group md-textarea-container">
+              <label>Description (Markdown Supported)</label>
+              <MarkdownToolbar targetId="supportDescriptionModal" />
+              <textarea 
+                id="supportDescriptionModal" 
+                rows="6" 
+                placeholder="Explain your problem or inquiry in detail so staff can assist you..." 
+                value={supportDescription} 
+                onChange={(e) => setSupportDescription(e.target.value)} 
+                required 
+              ></textarea>
+            </div>
+          )}
+
+          {/* 💬 REGULAR THREAD FORM FIELDS */}
+          {!isTicket && (
+            <div className="form-group md-textarea-container">
+              <label>Content (Markdown Supported)</label>
+              <MarkdownToolbar targetId="threadContent" />
+              <textarea 
+                id="threadContent" 
+                rows="6" 
+                placeholder="Write thread details here..." 
+                value={content} 
+                onChange={(e) => setContent(e.target.value)} 
+                required 
+              ></textarea>
+            </div>
+          )}
+
+          {/* Action Buttons */}
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-            <button type="button" className="btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary"><i className="fa-solid fa-paper-plane"></i> Post Thread</button>
+            <button type="button" className="btn" onClick={onClose} disabled={loading}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? (
+                <><i className="fa-solid fa-spinner fa-spin"></i> Submitting...</>
+              ) : (
+                <><i className="fa-solid fa-paper-plane"></i> {isTicket ? 'Submit Ticket' : 'Post Thread'}</>
+              )}
+            </button>
           </div>
         </form>
       </div>
