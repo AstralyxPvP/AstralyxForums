@@ -191,6 +191,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
       <CreateThreadModal
         isOpen={isThreadModalOpen}
         subcategoryId={subcategory.id}
+        subcategory={subcategory}
         onClose={() => setIsThreadModalOpen(false)}
         onSuccess={() => {
           const fetchThreads = async () => {
