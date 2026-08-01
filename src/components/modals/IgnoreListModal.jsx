@@ -44,7 +44,7 @@ export const IgnoreListModal = () => {
     setRemovingId(targetUserId);
     try {
       await apiFetch(`/api/user/ignore/${targetUserId}`, { method: 'DELETE' });
-      await checkAuth();
+      await checkAuth({ force: true });
       setIgnoredProfiles((prev) => prev.filter((p) => p.id !== targetUserId));
     } catch (err) {
       alert(err.message);
