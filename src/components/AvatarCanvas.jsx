@@ -92,7 +92,7 @@ export const AvatarCanvas = ({ onClose }) => {
       try {
         await apiFetch('/api/user/avatar', { method: 'POST', body: formData });
         alert('Avatar updated successfully!');
-        await checkAuth();
+        await checkAuth({ force: true });
         if (onClose) onClose();
       } catch (err) {
         alert('Avatar upload error: ' + err.message);
