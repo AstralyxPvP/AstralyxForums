@@ -51,7 +51,7 @@ export const UserProfileModal = ({ userId, onClose }) => {
         setIsIgnored(true);
       }
       // Refresh auth context so the ignore list is up-to-date everywhere
-      await checkAuth();
+      await checkAuth({ force: true });
     } catch (err) {
       alert(err.message);
     } finally {
