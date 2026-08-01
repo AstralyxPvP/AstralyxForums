@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../api';
+import { cachedFetch, invalidateCache } from '../api/cache';
 import { useAuth } from '../context/AuthContext';
 import { CreateCategoryModal, CreateSubcategoryModal } from '../components/modals/CreateModals';
+
+const CATEGORIES_KEY = '/api/categories';
 
 export const CategoriesPage = ({ onSelectSubcategory }) => {
   const { canManageCategories } = useAuth();
@@ -10,10 +13,14 @@ export const CategoriesPage = ({ onSelectSubcategory }) => {
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [selectedCatForSub, setSelectedCatForSub] = useState(null);
 
-  const fetchCategories = async () => {
-    setLoading(true);
+  const fetchCategories = async ({ force = false } = {}) => {
+    if (force) invalidateCache(CATEGORIES_KEY);
     try {
-      const data = await apiFetch('/api/categories');
+      const data = await cachedFetch(
+        CATEGORIES_KEY,
+        () => apiFetch('/api/categories'),
+        { onRevalidate: (fresh) => setCategories(fresh) }
+      );
       setCategories(data);
     } catch (err) {
       console.error(err);
@@ -30,7 +37,7 @@ export const CategoriesPage = ({ onSelectSubcategory }) => {
     if (!confirm('Delete entire category?')) return;
     try {
       await apiFetch(`/api/categories/${id}`, { method: 'DELETE' });
-      fetchCategories();
+      fetchCategories({ force: true });
     } catch (err) {
       alert(err.message);
     }
@@ -40,7 +47,7 @@ export const CategoriesPage = ({ onSelectSubcategory }) => {
     if (!confirm('Delete subcategory?')) return;
     try {
       await apiFetch(`/api/subcategories/${id}`, { method: 'DELETE' });
-      fetchCategories();
+      fetchCategories({ force: true });
     } catch (err) {
       alert(err.message);
     }
@@ -134,12 +141,12 @@ export const CategoriesPage = ({ onSelectSubcategory }) => {
         ))
       )}
 
-      <CreateCategoryModal isOpen={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} onSuccess={fetchCategories} />
+      <CreateCategoryModal isOpen={isCatModalOpen} onClose={() => setIsCatModalOpen(false)} onSuccess={() => fetchCategories({ force: true })} />
       <CreateSubcategoryModal
         isOpen={!!selectedCatForSub}
         categoryId={selectedCatForSub}
         onClose={() => setSelectedCatForSub(null)}
-        onSuccess={fetchCategories}
+        onSuccess={() => fetchCategories({ force: true })}
       />
     </div>
   );
