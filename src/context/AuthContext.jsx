@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../api';
-import { cachedFetch, invalidateCache } from '../api/cache';
+import { cachedFetch, invalidateCache, setCache } from '../api/cache';
 
 const AuthContext = createContext(null);
 
@@ -33,6 +33,12 @@ export const AuthProvider = ({ children }) => {
     return null;
   };
 
+  // Seed the /api/auth/me cache directly (e.g. right after login already
+  // returned the user object), avoiding a redundant round-trip.
+  const seedAuthCache = (authResponse) => {
+    setCache(AUTH_KEY, authResponse);
+  };
+
   useEffect(() => {
     checkAuth();
   }, []);
@@ -57,7 +63,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, loading, checkAuth, logout, canManageCategories, isStaff }}>
+    <AuthContext.Provider value={{ currentUser, setCurrentUser, loading, checkAuth, seedAuthCache, logout, canManageCategories, isStaff }}>
       {children}
     </AuthContext.Provider>
   );
