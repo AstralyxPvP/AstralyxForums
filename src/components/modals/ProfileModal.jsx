@@ -29,7 +29,7 @@ export const ProfileModal = ({ isOpen, onClose }) => {
         body: JSON.stringify({ displayName, link, signature })
       });
       alert('Profile updated!');
-      await checkAuth();
+      await checkAuth({ force: true });
       onClose();
     } catch (err) {
       alert(err.message);
@@ -51,7 +51,7 @@ export const ProfileModal = ({ isOpen, onClose }) => {
     try {
       await apiFetch('/api/user/discord/unlink', { method: 'POST' });
       alert('Discord unlinked.');
-      await checkAuth();
+      await checkAuth({ force: true });
     } catch (err) {
       alert(err.message);
     }
