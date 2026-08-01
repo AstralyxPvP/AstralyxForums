@@ -70,7 +70,7 @@ export default function App() {
     if (urlParams.get('mode') === 'verifyEmail') {
       alert('Email verified successfully!');
       window.history.replaceState({}, document.title, window.location.pathname);
-      checkAuth();
+      checkAuth({ force: true });
     }
 
     const code = urlParams.get('code');
@@ -82,7 +82,7 @@ export default function App() {
         .then((res) => {
           alert(`Discord Connected! Role: ${res.roleTag}`);
           window.history.replaceState({}, document.title, window.location.pathname);
-          checkAuth();
+          checkAuth({ force: true });
         })
         .catch((err) => alert('Discord OAuth error: ' + err.message));
     }
