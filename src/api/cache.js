@@ -71,3 +71,10 @@ export function invalidateCache(key) {
     inflight.clear();
   }
 }
+
+/** Directly seed the cache with known-fresh data, skipping a network round-trip.
+ *  Useful when an endpoint (e.g. login) already returns the data another
+ *  cached endpoint (e.g. /api/auth/me) would otherwise need to re-fetch. */
+export function setCache(key, data) {
+  store.set(key, { data, ts: Date.now() });
+}
