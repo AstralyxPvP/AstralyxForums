@@ -4,6 +4,7 @@ import { cachedFetch, invalidateCache } from '../api/cache';
 import { useAuth } from '../context/AuthContext';
 import { CreateThreadModal } from '../components/modals/CreateModals';
 import { TicketSubmissionForm } from '../components/TicketSubmissionForm';
+import { ShareModal } from '../components/ShareModal';
 
 const THREADS_TTL = 15_000; // shorter than categories — thread lists change often
 
@@ -14,6 +15,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
   const [loading, setLoading] = useState(true);
   const [isThreadModalOpen, setIsThreadModalOpen] = useState(false);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const threadsKey = subcategory?.id ? `/api/subcategories/${subcategory.id}/threads` : null;
 
@@ -50,7 +52,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
     loadSubcategoryAndThreads();
   }, [subcategory?.id]);
 
-  const handleCopyShareLink = async () => {
+  const handleShare = async () => {
     const shareUrl = `${SITE_ORIGIN}/?subcat=${subcatData.id}`;
     const shareTitle = subcatData?.name || 'AstralyxPvP Forums';
 
@@ -63,12 +65,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
       }
     }
 
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      alert('Section permalink copied to clipboard!');
-    } catch (err) {
-      prompt('Copy this link:', shareUrl);
-    }
+    setShareOpen(true);
   };
 
   // Smart Detection for Icons & UI Layout
@@ -123,7 +120,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
           {subcatData.name || 'Subcategory'}
         </h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="btn btn-sm" onClick={handleCopyShareLink} title="Share Link">
+          <button className="btn btn-sm" onClick={handleShare} title="Share Link">
             <i className="fa-solid fa-share-nodes"></i> Share
           </button>
           {currentUser && !currentUser.isMuted && (
@@ -231,6 +228,12 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
           const data = await apiFetch(`/api/subcategories/${subcatData.id}/threads`);
           setThreads(data);
         }}
+      />
+      <ShareModal
+        isOpen={shareOpen}
+        title={subcatData?.name || 'AstralyxPvP Forums'}
+        url={`${SITE_ORIGIN}/?subcat=${subcatData.id}`}
+        onClose={() => setShareOpen(false)}
       />
     </div>
   );

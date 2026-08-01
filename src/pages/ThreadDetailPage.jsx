@@ -7,6 +7,7 @@ import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { EditPostModal } from '../components/modals/EditPostModal';
 import { ReportModal } from '../components/modals/ReportModal';
 import { UserProfileModal } from '../components/modals/UserProfileModal';
+import { ShareModal } from '../components/ShareModal';
 import { checkContent } from '../lib/moderator';
 
 export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums, onBackToSubcategory, onOpenProfile }) => {
@@ -19,6 +20,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
 
   const [editModalData, setEditModalData] = useState(null);
   const [reportModalData, setReportModalData] = useState(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   // User profile modal state
   const [viewProfileUserId, setViewProfileUserId] = useState(null);
@@ -44,7 +46,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
     fetchThreadDetail();
   }, [threadId]);
 
-  const handleCopyShareLink = async () => {
+  const handleShare = async () => {
     const shareUrl = `${SITE_ORIGIN}/?thread=${threadId}`;
     const shareTitle = threadData?.title || title || 'AstralyxPvP Forums';
 
@@ -59,14 +61,8 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
       }
     }
 
-    // Fallback: copy to clipboard
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      alert('Thread permalink copied to clipboard!');
-    } catch (err) {
-      // Final fallback if clipboard API is unavailable
-      prompt('Copy this link:', shareUrl);
-    }
+    // Desktop fallback: custom share popup
+    setShareOpen(true);
   };
 
   const handleToggleLock = async () => {
@@ -197,7 +193,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
               <i className="fa-solid fa-check-double"></i> Close Ticket
             </button>
           )}
-          <button className="btn btn-sm" onClick={handleCopyShareLink} title="Share Permalinks">
+          <button className="btn btn-sm" onClick={handleShare} title="Share Permalink">
             <i className="fa-solid fa-share-nodes"></i> Share
           </button>
           {(canManageCategories() || currentUser?.permissions?.full) && (
@@ -474,6 +470,12 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
           onClose={() => setViewProfileUserId(null)}
         />
       )}
+      <ShareModal
+        isOpen={shareOpen}
+        title={threadData?.title || title || 'AstralyxPvP Forums'}
+        url={`${SITE_ORIGIN}/?thread=${threadId}`}
+        onClose={() => setShareOpen(false)}
+      />
     </div>
   );
 };

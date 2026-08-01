@@ -896,6 +896,96 @@ body::after {
 }
 .modal h2 i { color: var(--gold); }
 
+.modal-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--t-fast) ease, border-color var(--t-fast) ease, background var(--t-fast) ease;
+}
+.modal-close:hover {
+  color: var(--text);
+  border-color: var(--red-glow);
+  background: rgba(200, 16, 46, 0.1);
+}
+
+.share-modal { max-width: 480px; }
+.share-title {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin: -0.5rem auto 1.25rem;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.share-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+.share-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.85rem 0.4rem;
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: transform var(--t-fast) ease, border-color var(--t-fast) ease, background var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+.share-btn i {
+  font-size: 1.35rem;
+  color: var(--brand);
+  transition: transform var(--t-fast) ease, filter var(--t-fast) ease;
+}
+.share-btn:hover {
+  transform: translateY(-3px);
+  border-color: var(--brand);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.share-btn:hover i { transform: scale(1.15); filter: drop-shadow(0 0 6px var(--brand)); }
+.share-copy {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+.share-copy input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 13px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  outline: none;
+}
+.share-copy input:focus { border-color: var(--red-glow); }
+.share-copy .btn { white-space: nowrap; }
+
+
 .form-group { margin-bottom: 1.1rem; }
 .form-group label {
   display: block;
