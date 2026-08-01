@@ -146,7 +146,7 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
         method: 'POST',
         body: JSON.stringify({ idToken: response.credential })
       });
-      if (checkAuth) await checkAuth();
+      if (checkAuth) await checkAuth({ force: true });
       if (onClose) onClose();
     } catch (err) {
       alert('Google auth failed: ' + err.message);
@@ -169,7 +169,7 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
           turnstileToken
         })
       });
-      if (checkAuth) await checkAuth();
+      if (checkAuth) await checkAuth({ force: true });
       if (onClose) onClose();
     } catch (err) {
       alert(err.message);
