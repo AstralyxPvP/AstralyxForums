@@ -41,7 +41,7 @@ export const UserProfilePage = ({ userId, onBackToForums, onOpenThread }) => {
         });
         setIsIgnored(true);
       }
-      await checkAuth();
+      await checkAuth({ force: true });
     } catch (err) {
       alert(err.message);
     } finally {
