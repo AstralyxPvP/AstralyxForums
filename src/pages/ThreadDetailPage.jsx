@@ -43,10 +43,29 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
     fetchThreadDetail();
   }, [threadId]);
 
-  const handleCopyShareLink = () => {
+  const handleCopyShareLink = async () => {
     const shareUrl = `${SITE_ORIGIN}/?thread=${threadId}`;
-    navigator.clipboard.writeText(shareUrl);
-    alert('Thread permalink copied to clipboard!');
+    const shareTitle = threadData?.title || title || 'AstralyxPvP Forums';
+
+    // Prefer native share sheet on supported devices (mobile browsers)
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, url: shareUrl });
+        return;
+      } catch (err) {
+        // User cancelled the share sheet — don't fall through to clipboard/alert
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Thread permalink copied to clipboard!');
+    } catch (err) {
+      // Final fallback if clipboard API is unavailable
+      prompt('Copy this link:', shareUrl);
+    }
   };
 
   const handleToggleLock = async () => {
