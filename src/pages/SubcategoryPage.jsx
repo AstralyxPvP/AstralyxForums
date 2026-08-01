@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch, SITE_ORIGIN, formatAuthorName } from '../api';
+import { cachedFetch, invalidateCache } from '../api/cache';
 import { useAuth } from '../context/AuthContext';
 import { CreateThreadModal } from '../components/modals/CreateModals';
 import { TicketSubmissionForm } from '../components/TicketSubmissionForm';
+
+const THREADS_TTL = 15_000; // shorter than categories — thread lists change often
 
 export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenProfile }) => {
   const { currentUser } = useAuth();
@@ -12,6 +15,8 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
   const [isThreadModalOpen, setIsThreadModalOpen] = useState(false);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
 
+  const threadsKey = subcategory?.id ? `/api/subcategories/${subcategory.id}/threads` : null;
+
   useEffect(() => {
     const loadSubcategoryAndThreads = async () => {
       setLoading(true);
@@ -19,13 +24,20 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
         if (subcategory?.id) {
           // If subcategory name or ticket flags are missing, fetch fresh subcategory data
           if (!subcategory?.name || subcategory?.isTicket === undefined) {
-            const freshSub = await apiFetch(`/api/subcategories/${subcategory.id}`);
+            const freshSub = await cachedFetch(
+              `/api/subcategories/${subcategory.id}`,
+              () => apiFetch(`/api/subcategories/${subcategory.id}`)
+            );
             if (freshSub && freshSub.id) setSubcatData(freshSub);
           } else {
             setSubcatData(subcategory);
           }
 
-          const data = await apiFetch(`/api/subcategories/${subcategory.id}/threads`);
+          const data = await cachedFetch(
+            threadsKey,
+            () => apiFetch(threadsKey),
+            { ttl: THREADS_TTL, onRevalidate: (fresh) => setThreads(fresh) }
+          );
           setThreads(data);
         }
       } catch (err) {
@@ -200,6 +212,7 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
         subcategory={subcatData}
         onClose={() => setIsThreadModalOpen(false)}
         onSuccess={async () => {
+          invalidateCache(threadsKey);
           const data = await apiFetch(`/api/subcategories/${subcatData.id}/threads`);
           setThreads(data);
         }}
