@@ -3,6 +3,7 @@ import { apiFetch, SITE_ORIGIN } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { AvatarCanvas } from '../AvatarCanvas';
 import { IgnoreListModal } from './IgnoreListModal';
+import { filterValue } from '../../lib/safeFilter';
 
 export const ProfileModal = ({ isOpen, onClose }) => {
   const { currentUser, checkAuth, logout } = useAuth();
@@ -26,7 +27,7 @@ export const ProfileModal = ({ isOpen, onClose }) => {
     try {
       await apiFetch('/api/user/profile', {
         method: 'PUT',
-        body: JSON.stringify({ displayName, link, signature })
+        body: JSON.stringify({ displayName: filterValue(displayName), link: filterValue(link), signature: filterValue(signature) })
       });
       alert('Profile updated!');
       await checkAuth({ force: true });

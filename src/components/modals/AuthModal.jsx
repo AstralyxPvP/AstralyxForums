@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { apiFetch } from '../../api';
 import { useAuth } from '../../context/AuthContext';
+import { filterValue } from '../../lib/safeFilter';
 
 export function AuthModal({ initialTab = 'login', isOpen = true, onClose, activeTab, setActiveTab }) {
   const currentTab = activeTab || initialTab;
@@ -243,7 +244,7 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
       const res = await apiFetch('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({
-          username: regUsername,
+          username: filterValue(regUsername),
           email: regEmail,
           password: regPassword,
           turnstileToken

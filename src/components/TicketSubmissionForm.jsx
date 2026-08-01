@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../api';
 import { MarkdownToolbar } from './MarkdownToolbar';
+import { filterValue } from '../lib/safeFilter';
+import { checkContent } from '../lib/moderator';
 
 export const TicketSubmissionForm = ({ subcategory, onSuccess, onCancel }) => {
   const isBugReport = subcategory?.ticketType === 'bug';
@@ -26,28 +28,34 @@ export const TicketSubmissionForm = ({ subcategory, onSuccess, onCancel }) => {
     let formattedContent = '';
 
     if (isBugReport) {
-      formattedContent = `**Minecraft Username:** ${mcUsername.trim()}
-**Minecraft Version:** ${mcVersion.trim()}
+      formattedContent = `**Minecraft Username:** ${filterValue(mcUsername.trim())}
+**Minecraft Version:** ${filterValue(mcVersion.trim())}
 
 ---
 
 ### 🐛 Bug Description
-${bugDescription.trim()}
+${filterValue(bugDescription.trim())}
 
 ---
 
 ### 📷 Evidence
-${evidence.trim()}`;
+${filterValue(evidence.trim())}`;
     } else {
-      formattedContent = supportDescription.trim();
+      formattedContent = filterValue(supportDescription.trim());
+    }
+
+    const safeContent = await checkContent(formattedContent);
+    if (safeContent === null) {
+      setLoading(false);
+      return;
     }
 
     try {
       const res = await apiFetch(`/api/subcategories/${subcategory.id}/threads`, {
         method: 'POST',
         body: JSON.stringify({
-          title: title.trim(),
-          content: formattedContent,
+          title: filterValue(title.trim()),
+          content: safeContent,
           isTicket: true
         })
       });

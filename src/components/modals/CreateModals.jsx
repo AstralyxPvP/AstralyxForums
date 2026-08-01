@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../api';
 import { MarkdownToolbar } from '../MarkdownToolbar';
+import { filterValue } from '../../lib/safeFilter';
+import { checkContent } from '../../lib/moderator';
 
 // ============================================================================
 // CREATE CATEGORY MODAL (WITH AUTO-DEFAULT SUBCATEGORY)
@@ -25,7 +27,7 @@ export const CreateCategoryModal = ({ isOpen, onClose, onSuccess }) => {
       // 1. Create Main Category
       const cat = await apiFetch('/api/categories', {
         method: 'POST',
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name: filterValue(name) })
       });
 
       // 2. Automatically create a default subcategory so it's ready immediately
@@ -33,10 +35,10 @@ export const CreateCategoryModal = ({ isOpen, onClose, onSuccess }) => {
         await apiFetch('/api/subcategories', {
           method: 'POST',
           body: JSON.stringify({
-            categoryId: cat.id,
-            name: subName || 'General Discussion',
-            description: `Discussion for ${name}`,
-            isAnnouncement: false
+          categoryId: cat.id,
+          name: filterValue(subName || 'General Discussion'),
+          description: `Discussion for ${filterValue(name)}`,
+          isAnnouncement: false
           })
         });
       }
@@ -115,8 +117,8 @@ export const CreateSubcategoryModal = ({ isOpen, categoryId, onClose, onSuccess 
         method: 'POST',
         body: JSON.stringify({ 
           categoryId, 
-          name, 
-          description, 
+          name: filterValue(name), 
+          description: filterValue(description), 
           isAnnouncement,
           isTicket,
           ticketType: isTicket ? ticketType : null
@@ -287,28 +289,37 @@ export const CreateThreadModal = ({ isOpen, subcategory, subcategoryId, onClose,
     let finalContent = content;
 
     if (isBugReport) {
-      finalContent = `**Minecraft Username:** ${mcUsername.trim()}
-**Minecraft Version:** ${mcVersion.trim()}
+      finalContent = `**Minecraft Username:** ${filterValue(mcUsername.trim())}
+**Minecraft Version:** ${filterValue(mcVersion.trim())}
 
 ---
 
 ### 🐛 Bug Description
-${bugDescription.trim()}
+${filterValue(bugDescription.trim())}
 
 ---
 
 ### 📷 Evidence
-${evidence.trim()}`;
+${filterValue(evidence.trim())}`;
     } else if (isSupportTicket) {
-      finalContent = supportDescription.trim();
+      finalContent = filterValue(supportDescription.trim());
+    }
+
+    const safeTitle = filterValue(title.trim());
+    finalContent = filterValue(finalContent);
+
+    const safeContent = await checkContent(finalContent);
+    if (safeContent === null) {
+      setLoading(false);
+      return;
     }
 
     try {
       await apiFetch(`/api/subcategories/${targetSubId}/threads`, {
         method: 'POST',
         body: JSON.stringify({ 
-          title: title.trim(), 
-          content: finalContent 
+          title: safeTitle, 
+          content: safeContent 
         })
       });
 
@@ -429,8 +440,10 @@ ${evidence.trim()}`;
                 placeholder="Write thread details here..." 
                 value={content} 
                 onChange={(e) => setContent(e.target.value)} 
+                maxLength={2000}
                 required 
               ></textarea>
+              <span className="char-count">{content.length}/2000</span>
             </div>
           )}
 

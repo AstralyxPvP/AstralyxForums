@@ -25,9 +25,13 @@ export default function App() {
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [showTop, setShowTop] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 20);
+      setShowTop(window.scrollY > 500);
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -252,7 +256,7 @@ export default function App() {
 
       {/* HERO BANNER */}
       <div className="hero">
-        <h1><i className="fa-solid fa-comments"></i> Welcome to AstralForum</h1>
+        <h1><i className="fa-solid fa-comments"></i> Welcome to <span className="hero-brand">AstralyxForums</span></h1>
         <p>Join community discussions, check updates, and connect with players.</p>
       </div>
 
@@ -300,6 +304,15 @@ export default function App() {
       <AuthModal isOpen={authModalOpen} initialTab={authTab} onClose={() => setAuthModalOpen(false)} />
       <ProfileModal isOpen={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
       <StaffModal isOpen={staffModalOpen} onClose={() => setStaffModalOpen(false)} />
+
+      {/* BACK TO TOP */}
+      <button
+        className={"back-to-top" + (showTop ? " visible" : "")}
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        aria-label="Back to top"
+      >
+        <i className="fa-solid fa-arrow-up"></i>
+      </button>
     </div>
   );
 }

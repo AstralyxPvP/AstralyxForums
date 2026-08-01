@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../../api';
 import { MarkdownToolbar } from '../MarkdownToolbar';
+import { checkContent } from '../../lib/moderator';
 
 export const EditPostModal = ({ isOpen, threadId, postId, initialContent, onClose, onSuccess }) => {
   const [content, setContent] = useState('');
@@ -13,10 +14,12 @@ export const EditPostModal = ({ isOpen, threadId, postId, initialContent, onClos
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const safe = await checkContent(content);
+    if (safe === null) return;
     try {
       await apiFetch(`/api/threads/${threadId}/posts/${postId}`, {
         method: 'PUT',
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content: safe })
       });
       onSuccess();
       onClose();

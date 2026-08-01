@@ -7,6 +7,7 @@ import { MarkdownToolbar } from '../components/MarkdownToolbar';
 import { EditPostModal } from '../components/modals/EditPostModal';
 import { ReportModal } from '../components/modals/ReportModal';
 import { UserProfileModal } from '../components/modals/UserProfileModal';
+import { checkContent } from '../lib/moderator';
 
 export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums, onBackToSubcategory, onOpenProfile }) => {
   const { currentUser, canManageCategories, checkAuth } = useAuth();
@@ -93,10 +94,12 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
 
   const handleCreateReply = async (e) => {
     e.preventDefault();
+    const safe = await checkContent(replyContent);
+    if (safe === null) return;
     try {
       await apiFetch(`/api/threads/${threadId}/posts`, {
         method: 'POST',
-        body: JSON.stringify({ content: replyContent })
+        body: JSON.stringify({ content: safe })
       });
       setReplyContent('');
       fetchThreadDetail();
@@ -430,8 +433,10 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
                 placeholder="Write a response... (Markdown supported)"
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
+                maxLength={2000}
                 required
               />
+              <span className="char-count">{replyContent.length}/2000</span>
             </div>
             <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
               <i className="fa-solid fa-paper-plane"></i> {subData?.isTicket ? 'Submit Reply' : 'Submit Comment'}

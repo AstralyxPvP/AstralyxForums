@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../../api';
+import { filterValue } from '../../lib/safeFilter';
 
 export const ReportModal = ({ isOpen, threadId, postId, onClose }) => {
   const [reason, setReason] = useState('');
@@ -11,7 +12,7 @@ export const ReportModal = ({ isOpen, threadId, postId, onClose }) => {
     try {
       await apiFetch('/api/reports', {
         method: 'POST',
-        body: JSON.stringify({ threadId, postId, reason })
+        body: JSON.stringify({ threadId, postId, reason: filterValue(reason) })
       });
       alert('Report submitted to staff team.');
       setReason('');

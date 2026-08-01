@@ -180,6 +180,14 @@ body::after {
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+@keyframes cardFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 4px 24px rgba(0, 0, 0, 0.55), 0 1px 4px rgba(0, 0, 0, 0.35); }
+  50%      { box-shadow: 0 4px 28px rgba(255, 215, 0, 0.18), 0 1px 4px rgba(0, 0, 0, 0.35); }
+}
 
 .grad-text-fire {
   background: linear-gradient(90deg, var(--red), var(--gold), var(--red));
@@ -499,10 +507,9 @@ body::after {
 .hero h1 {
   font-family: var(--font-display);
   font-size: clamp(2rem, 5vw, 3.2rem);
-  font-weight: 800;
+  font-weight: 900;
   margin-bottom: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   background: linear-gradient(110deg, var(--gold) 0%, #ff8c5a 35%, var(--red) 60%, var(--gold) 100%);
   background-size: 250% auto;
   -webkit-background-clip: text;
@@ -510,6 +517,10 @@ body::after {
   color: transparent;
   animation: gradientMove 6s linear infinite;
   filter: drop-shadow(0 0 28px rgba(200, 16, 46, 0.3));
+}
+.hero h1 .hero-brand {
+  font-style: italic;
+  font-weight: 900;
 }
 .hero p {
   color: var(--text-muted);
@@ -1219,3 +1230,57 @@ body::after {
   .btn { min-height: 44px; }
   .btn-sm { min-height: 38px; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   EXPERIENCE POLISH — focus, chars, cards, back-to-top
+   ═══════════════════════════════════════════════════════════ */
+html { scroll-behavior: smooth; }
+
+:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 2px;
+}
+
+.forum-card,
+.post-card,
+.thread-item,
+.category-row {
+  animation: cardFadeIn 0.5s var(--ease) both;
+}
+
+.char-count {
+  display: block;
+  text-align: right;
+  font-family: var(--font-code);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  margin-top: 0.35rem;
+}
+
+.back-to-top {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1200;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--border-hover);
+  background: linear-gradient(145deg, rgba(200, 16, 46, 0.9), rgba(60, 5, 14, 0.95));
+  color: var(--gold);
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease), border-color var(--t-med) var(--ease);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(200, 16, 46, 0.35);
+}
+.back-to-top.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.back-to-top:hover {
+  border-color: var(--gold);
+  box-shadow: 0 6px 30px rgba(255, 215, 0, 0.25), 0 2px 10px rgba(200, 16, 46, 0.5);
+}
+
