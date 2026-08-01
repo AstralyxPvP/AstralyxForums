@@ -24,6 +24,14 @@ export default function App() {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const parseRouteFromUrl = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
@@ -119,8 +127,8 @@ export default function App() {
   if (currentUser && !currentUser.emailVerified) {
     return (
       <div className="app-root">
-        <header className="navbar">
-          <div className="brand" onClick={navigateToCategories}>
+      <header className={"navbar" + (scrolled ? " scrolled" : "")}>
+        <div className="brand" onClick={navigateToCategories}>
             <img
               className="brand-logo"
               src="https://www.astralyxpvp.int.yt/Assets/logo-compress.png"
@@ -147,7 +155,7 @@ export default function App() {
   return (
     <div className="app-root">
       {/* NAVBAR */}
-      <header className="navbar">
+      <header className={"navbar" + (scrolled ? " scrolled" : "")}>
         <div className="brand" onClick={() => { navigateToCategories(); setMenuOpen(false); }}>
           <img
             className="brand-logo"
