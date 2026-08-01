@@ -217,7 +217,7 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
       const normalizedUser = normalizeAuthResponse(res);
       if (normalizedUser && setCurrentUser) {
         setCurrentUser(normalizedUser);
-        seedAuthCache({ authenticated: true, user: normalizedUser });
+        seedAuthCache?.({ authenticated: true, user: normalizedUser });
       } else if (checkAuth) {
         await checkAuth({ force: true });
       }
