@@ -50,10 +50,25 @@ export const SubcategoryPage = ({ subcategory, onBack, onSelectThread, onOpenPro
     loadSubcategoryAndThreads();
   }, [subcategory?.id]);
 
-  const handleCopyShareLink = () => {
+  const handleCopyShareLink = async () => {
     const shareUrl = `${SITE_ORIGIN}/?subcat=${subcatData.id}`;
-    navigator.clipboard.writeText(shareUrl);
-    alert('Section permalink copied to clipboard!');
+    const shareTitle = subcatData?.name || 'AstralyxPvP Forums';
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, url: shareUrl });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Section permalink copied to clipboard!');
+    } catch (err) {
+      prompt('Copy this link:', shareUrl);
+    }
   };
 
   // Smart Detection for Icons & UI Layout
