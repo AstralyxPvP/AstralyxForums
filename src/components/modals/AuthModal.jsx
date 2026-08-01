@@ -12,7 +12,32 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
-  const { checkAuth } = useAuth();
+  const { checkAuth, setCurrentUser, seedAuthCache } = useAuth();
+
+  // login/google endpoints return a flat { userId, displayName, ... } shape,
+  // while /api/auth/me returns { authenticated, user: { id, displayName, ... } }.
+  // Normalize the flat shape to match so we can seed the cache directly
+  // instead of firing a second /api/auth/me round-trip after login.
+  const normalizeAuthResponse = (res) => {
+    if (!res || !res.userId) return null;
+    return {
+      id: res.userId,
+      email: res.email || '',
+      emailVerified: !!res.emailVerified,
+      displayName: res.displayName || 'User',
+      avatarUrl: res.avatarUrl || '',
+      link: res.link || '',
+      signature: res.signature || '',
+      role: res.role || 'member',
+      roleTag: res.roleTag || 'Member',
+      discordId: res.discordId || null,
+      permissions: res.permissions || {},
+      isMuted: !!res.isMuted,
+      muteReason: res.muteReason || null,
+      mutedUntil: res.mutedUntil || null,
+      ignoredUsers: res.ignoredUsers || []
+    };
+  };
   
   // Dedicated Turnstile containers for each form tab
   const loginTurnstileRef = useRef(null);
@@ -37,13 +62,18 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
   useEffect(() => {
     let isMounted = true;
     let intervalId = null;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 100; // ~10s at 100ms
 
     const renderTurnstile = () => {
-      if (!isMounted || !window.turnstile) return;
+      if (!isMounted) return false;
 
       // Select target container based on current active tab
       const targetContainer = tab === 'login' ? loginTurnstileRef.current : registerTurnstileRef.current;
-      if (!targetContainer) return;
+
+      // Bail out (and let the retry loop try again) if either the script
+      // or the DOM container for this tab isn't ready yet.
+      if (!window.turnstile || !targetContainer) return false;
 
       // Cleanup existing widget instance if switching tabs
       if (turnstileWidgetId.current !== null) {
@@ -71,21 +101,22 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
             if (isMounted) setTurnstileToken('');
           }
         });
+        return true;
       } catch (err) {
         console.error('Turnstile render error:', err);
+        return false;
       }
     };
 
-    if (window.turnstile) {
-      renderTurnstile();
-    } else {
-      intervalId = setInterval(() => {
-        if (window.turnstile) {
-          clearInterval(intervalId);
-          renderTurnstile();
-        }
-      }, 100);
-    }
+    // Always poll rather than only trying once — this covers the case
+    // where window.turnstile is already loaded but the tab's ref hasn't
+    // committed to the DOM yet (e.g. modal opening straight on 'login').
+    intervalId = setInterval(() => {
+      attempts += 1;
+      if (renderTurnstile() || attempts >= MAX_ATTEMPTS) {
+        clearInterval(intervalId);
+      }
+    }, 100);
 
     return () => {
       isMounted = false;
@@ -104,36 +135,38 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
   // --- Google Sign-In Integration ---
   useEffect(() => {
     let intervalId = null;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 100; // ~10s at 100ms
 
     const initGoogle = () => {
-      if (window.google?.accounts?.id && googleBtnRef.current) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: '728778108784-c0t5fjar4nhm33dk8oq5bakp1uo5lbe0.apps.googleusercontent.com',
-            callback: handleGoogleCallback,
-          });
+      if (!window.google?.accounts?.id || !googleBtnRef.current) return false;
+      try {
+        window.google.accounts.id.initialize({
+          client_id: '728778108784-c0t5fjar4nhm33dk8oq5bakp1uo5lbe0.apps.googleusercontent.com',
+          callback: handleGoogleCallback,
+        });
 
-          googleBtnRef.current.innerHTML = '';
-          window.google.accounts.id.renderButton(googleBtnRef.current, {
-            theme: 'filled_black',
-            size: 'large',
-          });
-        } catch (e) {
-          console.error('Google Auth Init Error:', e);
-        }
+        googleBtnRef.current.innerHTML = '';
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: 'filled_black',
+          size: 'large',
+        });
+        return true;
+      } catch (e) {
+        console.error('Google Auth Init Error:', e);
+        return false;
       }
     };
 
-    if (window.google?.accounts?.id) {
-      initGoogle();
-    } else {
-      intervalId = setInterval(() => {
-        if (window.google?.accounts?.id) {
-          clearInterval(intervalId);
-          initGoogle();
-        }
-      }, 100);
-    }
+    // Poll rather than try-once, so switching tabs (which re-mounts the
+    // button container) always re-renders even if the script loaded
+    // before the container existed.
+    intervalId = setInterval(() => {
+      attempts += 1;
+      if (initGoogle() || attempts >= MAX_ATTEMPTS) {
+        clearInterval(intervalId);
+      }
+    }, 100);
 
     return () => {
       if (intervalId) clearInterval(intervalId);
@@ -142,11 +175,19 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
 
   const handleGoogleCallback = async (response) => {
     try {
-      await apiFetch('/api/auth/google', {
+      const res = await apiFetch('/api/auth/google', {
         method: 'POST',
         body: JSON.stringify({ idToken: response.credential })
       });
-      if (checkAuth) await checkAuth({ force: true });
+
+      const normalizedUser = normalizeAuthResponse(res);
+      if (normalizedUser && setCurrentUser) {
+        setCurrentUser(normalizedUser);
+        seedAuthCache?.({ authenticated: true, user: normalizedUser });
+      } else if (checkAuth) {
+        await checkAuth({ force: true });
+      }
+
       if (onClose) onClose();
     } catch (err) {
       alert('Google auth failed: ' + err.message);
@@ -161,7 +202,7 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
     }
 
     try {
-      await apiFetch('/api/auth/login', {
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({
           email: loginEmail,
@@ -169,7 +210,18 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
           turnstileToken
         })
       });
-      if (checkAuth) await checkAuth({ force: true });
+
+      // Login returns the user data flat in the same response — normalize
+      // and seed it directly instead of firing a second /api/auth/me
+      // round-trip, which was doubling perceived login time.
+      const normalizedUser = normalizeAuthResponse(res);
+      if (normalizedUser && setCurrentUser) {
+        setCurrentUser(normalizedUser);
+        seedAuthCache({ authenticated: true, user: normalizedUser });
+      } else if (checkAuth) {
+        await checkAuth({ force: true });
+      }
+
       if (onClose) onClose();
     } catch (err) {
       alert(err.message);
