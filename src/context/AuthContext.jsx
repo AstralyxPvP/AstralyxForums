@@ -1,15 +1,24 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../api';
+import { cachedFetch, invalidateCache } from '../api/cache';
 
 const AuthContext = createContext(null);
+
+const AUTH_KEY = '/api/auth/me';
+const AUTH_TTL = 60_000; // 1 min — session state doesn't need constant re-checking
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const checkAuth = async () => {
+  const checkAuth = async ({ force = false } = {}) => {
+    if (force) invalidateCache(AUTH_KEY);
     try {
-      const res = await apiFetch('/api/auth/me');
+      const res = await cachedFetch(
+        AUTH_KEY,
+        () => apiFetch('/api/auth/me'),
+        { ttl: AUTH_TTL, onRevalidate: (fresh) => setCurrentUser(fresh.authenticated ? fresh.user : null) }
+      );
       if (res.authenticated) {
         setCurrentUser(res.user);
         return res.user;
@@ -31,6 +40,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     document.cookie = 'session_id=; Secure; SameSite=None; Path=/; Max-Age=0';
     document.cookie = 'user_id=; Secure; SameSite=None; Path=/; Max-Age=0';
+    invalidateCache(AUTH_KEY);
     setCurrentUser(null);
   };
 
