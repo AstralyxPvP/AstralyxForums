@@ -7,7 +7,7 @@ import { SubcategoryPage } from './pages/SubcategoryPage';
 import { ThreadDetailPage } from './pages/ThreadDetailPage';
 import { UserProfilePage } from './pages/UserProfilePage'; // NEW
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
-import { AuthModal } from './components/modals/AuthModal';
+import { AuthPage } from './pages/AuthPage';
 import { ProfileModal } from './components/modals/ProfileModal';
 import { StaffModal } from './components/modals/StaffModal';
 
@@ -19,8 +19,7 @@ export default function App() {
   const [selectedThread, setSelectedThread] = useState(null);
   const [selectedProfileId, setSelectedProfileId] = useState(null); // NEW
 
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authTab, setAuthTab] = useState('login');
+  const [authMode, setAuthMode] = useState('login');
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -44,8 +43,12 @@ export default function App() {
     const threadId = params.get('thread') || (path.startsWith('/thread/') ? path.split('/thread/')[1] : null);
     const subcatId = params.get('subcat') || (path.startsWith('/subcat/') ? path.split('/subcat/')[1] : null);
     const userId = params.get('user') || (path.startsWith('/user/') ? path.split('/user/')[1] : null); // NEW
+    const authMode = params.get('auth') || (path.startsWith('/login') ? 'login' : path.startsWith('/register') ? 'register' : null);
 
-    if (threadId) {
+    if (authMode) {
+      setAuthMode(authMode);
+      setCurrentView('auth');
+    } else if (threadId) {
       setSelectedThread((prev) => (prev?.id === threadId ? prev : { id: threadId, title: '' }));
       setCurrentView('thread');
     } else if (subcatId) {
@@ -123,9 +126,10 @@ export default function App() {
     setCurrentView('profile');
   };
 
-  const openAuth = (tab) => {
-    setAuthTab(tab);
-    setAuthModalOpen(true);
+  const navigateToAuth = (mode) => {
+    window.history.pushState({}, '', `/?auth=${mode}`);
+    setAuthMode(mode);
+    setCurrentView('auth');
   };
 
   if (currentUser && !currentUser.emailVerified) {
@@ -200,10 +204,10 @@ export default function App() {
             </div>
           ) : (
             <>
-              <button className="btn" onClick={() => openAuth('login')}>
+              <button className="btn" onClick={() => navigateToAuth('login')}>
                 <i className="fa-solid fa-right-to-bracket"></i> Log In
               </button>
-              <button className="btn btn-primary" onClick={() => openAuth('register')}>
+              <button className="btn btn-primary" onClick={() => navigateToAuth('register')}>
                 <i className="fa-solid fa-user-plus"></i> Register
               </button>
             </>
@@ -244,10 +248,10 @@ export default function App() {
           </>
         ) : (
           <>
-            <button className="btn" onClick={() => { openAuth('login'); setMenuOpen(false); }}>
+            <button className="btn" onClick={() => { navigateToAuth('login'); setMenuOpen(false); }}>
               <i className="fa-solid fa-right-to-bracket" /> Log In
             </button>
-            <button className="btn btn-primary" onClick={() => { openAuth('register'); setMenuOpen(false); }}>
+            <button className="btn btn-primary" onClick={() => { navigateToAuth('register'); setMenuOpen(false); }}>
               <i className="fa-solid fa-user-plus" /> Register
             </button>
           </>
@@ -262,6 +266,18 @@ export default function App() {
 
       {/* MAIN CONTAINER */}
       <div className="container">
+        {currentView === 'auth' && (currentUser ? (
+          <CategoriesPage
+            onSelectSubcategory={(id, name) => navigateToSubcategory(id, name)}
+          />
+        ) : (
+          <AuthPage
+            mode={authMode}
+            onBack={navigateToCategories}
+            onSuccess={navigateToCategories}
+          />
+        ))}
+
         {currentView === 'categories' && (
           <CategoriesPage
             onSelectSubcategory={(id, name) => navigateToSubcategory(id, name)}
@@ -301,7 +317,6 @@ export default function App() {
       </div>
 
       {/* MODALS */}
-      <AuthModal isOpen={authModalOpen} initialTab={authTab} onClose={() => setAuthModalOpen(false)} />
       <ProfileModal isOpen={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
       <StaffModal isOpen={staffModalOpen} onClose={() => setStaffModalOpen(false)} />
 
