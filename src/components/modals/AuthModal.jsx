@@ -61,6 +61,8 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
 
   // --- Cloudflare Turnstile Integration (Handles Login & Register) ---
   useEffect(() => {
+    if (!isOpen) return;
+
     let isMounted = true;
     let intervalId = null;
     let attempts = 0;
@@ -109,9 +111,9 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
       }
     };
 
-    // Always poll rather than only trying once — this covers the case
-    // where window.turnstile is already loaded but the tab's ref hasn't
-    // committed to the DOM yet (e.g. modal opening straight on 'login').
+    // Poll only while the modal is open. Each open re-runs the effect and
+    // starts with a fresh attempt budget, so the widgets always render even
+    // if the effect first ran while the modal was closed.
     intervalId = setInterval(() => {
       attempts += 1;
       if (renderTurnstile() || attempts >= MAX_ATTEMPTS) {
@@ -131,10 +133,12 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
         }
       }
     };
-  }, [tab]);
+  }, [tab, isOpen]);
 
   // --- Google Sign-In Integration ---
   useEffect(() => {
+    if (!isOpen) return;
+
     let intervalId = null;
     let attempts = 0;
     const MAX_ATTEMPTS = 100; // ~10s at 100ms
@@ -159,9 +163,7 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
       }
     };
 
-    // Poll rather than try-once, so switching tabs (which re-mounts the
-    // button container) always re-renders even if the script loaded
-    // before the container existed.
+    // Poll only while the modal is open, re-armed fresh on every open.
     intervalId = setInterval(() => {
       attempts += 1;
       if (initGoogle() || attempts >= MAX_ATTEMPTS) {
@@ -172,7 +174,7 @@ export function AuthModal({ initialTab = 'login', isOpen = true, onClose, active
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [tab]);
+  }, [tab, isOpen]);
 
   const handleGoogleCallback = async (response) => {
     try {
