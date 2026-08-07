@@ -90,7 +90,7 @@ export const ThreadDetailPage = ({ threadId, title, subcategory, onBackToForums,
 
   const handleCreateReply = async (e) => {
     e.preventDefault();
-    const safe = await checkContent(replyContent);
+    const safe = await checkContent(replyContent, currentUser?.id);
     if (safe === null) return;
     try {
       await apiFetch(`/api/threads/${threadId}/posts`, {
