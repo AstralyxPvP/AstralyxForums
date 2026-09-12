@@ -17,9 +17,12 @@ export const AuthProvider = ({ children }) => {
       const res = await cachedFetch(
         AUTH_KEY,
         () => apiFetch('/api/auth/me'),
-        { ttl: AUTH_TTL, onRevalidate: (fresh) => setCurrentUser(fresh?.authenticated ? fresh.user : null) }
+        { 
+          ttl: AUTH_TTL, 
+          onRevalidate: (fresh) => setCurrentUser(fresh?.authenticated ? fresh.user : null) 
+        }
       );
-      if (res && res.authenticated) {
+      if (res && res.authenticated && res.user) {
         setCurrentUser(res.user);
         return res.user;
       } else {
@@ -34,12 +37,33 @@ export const AuthProvider = ({ children }) => {
   };
 
   const seedAuthCache = (authResponse) => {
-    // If authResponse contains token, persist it
+    if (!authResponse) return;
+
     if (authResponse?.token) {
       localStorage.setItem('astral_token', authResponse.token);
     }
-    setCache(AUTH_KEY, { authenticated: true, user: authResponse });
-    setCurrentUser(authResponse);
+
+    // Invalidate stale cached /api/auth/me entries immediately
+    invalidateCache(AUTH_KEY);
+
+    // Normalize user object whether it came from /api/auth/login or /api/auth/me
+    const userPayload = authResponse.user || {
+      id: authResponse.userId || authResponse.id,
+      email: authResponse.email,
+      emailVerified: Boolean(authResponse.emailVerified),
+      displayName: authResponse.displayName,
+      role: authResponse.role || 'member',
+      roleTag: authResponse.roleTag || 'Member',
+      permissions: authResponse.permissions || {},
+      avatarUrl: authResponse.avatarUrl || '',
+      isMuted: Boolean(authResponse.isMuted),
+      muteReason: authResponse.muteReason || null,
+      mutedUntil: authResponse.mutedUntil || null,
+      ignoredUsers: authResponse.ignoredUsers || []
+    };
+
+    setCache(AUTH_KEY, { authenticated: true, user: userPayload });
+    setCurrentUser(userPayload);
   };
 
   useEffect(() => {
@@ -51,8 +75,12 @@ export const AuthProvider = ({ children }) => {
       await apiFetch('/api/auth/logout', { method: 'POST' });
     } catch {}
     localStorage.removeItem('astral_token');
-    document.cookie = 'session_id=; Secure; SameSite=None; Path=/; Max-Age=0';
-    document.cookie = 'user_id=; Secure; SameSite=None; Path=/; Max-Age=0';
+    
+    // Clear cookies client-side as fallback
+    document.cookie = 'astral_session=; Secure; SameSite=None; Path=/; Max-Age=0; Partitioned';
+    document.cookie = 'session_id=; Secure; SameSite=None; Path=/; Max-Age=0; Partitioned';
+    document.cookie = 'user_id=; Secure; SameSite=None; Path=/; Max-Age=0; Partitioned';
+    
     invalidateCache(AUTH_KEY);
     setCurrentUser(null);
   };
