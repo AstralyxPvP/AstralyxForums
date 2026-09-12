@@ -26,10 +26,21 @@ export function canModerateRole(actorRoleTag, targetRoleTag) {
 
 export async function apiFetch(endpoint, options = {}) {
   options.credentials = 'include';
+  
+  // Attach token from localStorage if available
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('astral_token') : null;
+
+  const headers = {
+    ...(options.headers || {}),
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
+
   if (!(options.body instanceof FormData)) {
-    options.headers = { ...options.headers, 'Content-Type': 'application/json' };
+    headers['Content-Type'] = 'application/json';
   }
   
+  options.headers = headers;
+
   const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'API Request failed');
