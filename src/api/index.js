@@ -24,13 +24,29 @@ export function canModerateRole(actorRoleTag, targetRoleTag) {
   return getRoleRank(actorRoleTag) < getRoleRank(targetRoleTag);
 }
 
+// Generate or reuse a persistent hardware/browser fingerprint
+function getDeviceFingerprint() {
+  if (typeof localStorage === 'undefined') return 'none';
+  let fp = localStorage.getItem('astral_device_fp');
+  if (!fp) {
+    const raw = `${navigator.userAgent}-${navigator.language}-${screen.colorDepth}x${screen.width}x${screen.height}`;
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+      hash |= 0;
+    }
+    fp = `fp_${Math.abs(hash).toString(16)}`;
+    localStorage.setItem('astral_device_fp', fp);
+  }
+  return fp;
+}
+
 export async function apiFetch(endpoint, options = {}) {
-  options.credentials = 'include';
-  
   // Attach token from localStorage if available
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('astral_token') : null;
 
   const headers = {
+    'X-Device-Fingerprint': getDeviceFingerprint(),
     ...(options.headers || {}),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
   };
@@ -38,11 +54,21 @@ export async function apiFetch(endpoint, options = {}) {
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
-  
-  options.headers = headers;
 
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'API Request failed');
+  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    credentials: 'include', // Guarantees astral_session and session_id cookies are passed cross-origin
+    headers
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    if (res.status === 401 && typeof localStorage !== 'undefined') {
+      localStorage.removeItem('astral_token');
+    }
+    throw new Error(data.error || 'API Request failed');
+  }
+
   return data;
 }
