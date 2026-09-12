@@ -1,4 +1,4 @@
-export const API_BASE_URL = 'https://forum-api.chessmrbeaston.workers.dev';
+export const API_BASE_URL = 'https://api.astralyxpvp.workers.dev';
 export const SITE_ORIGIN = 'https://astralyxforums.pages.dev';
 
 export const ROLE_MAP = [
