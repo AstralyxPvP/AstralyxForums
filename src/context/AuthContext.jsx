@@ -5,7 +5,7 @@ import { cachedFetch, invalidateCache, setCache } from '../api/cache';
 const AuthContext = createContext(null);
 
 const AUTH_KEY = '/api/auth/me';
-const AUTH_TTL = 60_000; // 1 min — session state doesn't need constant re-checking
+const AUTH_TTL = 60_000;
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -17,9 +17,9 @@ export const AuthProvider = ({ children }) => {
       const res = await cachedFetch(
         AUTH_KEY,
         () => apiFetch('/api/auth/me'),
-        { ttl: AUTH_TTL, onRevalidate: (fresh) => setCurrentUser(fresh.authenticated ? fresh.user : null) }
+        { ttl: AUTH_TTL, onRevalidate: (fresh) => setCurrentUser(fresh?.authenticated ? fresh.user : null) }
       );
-      if (res.authenticated) {
+      if (res && res.authenticated) {
         setCurrentUser(res.user);
         return res.user;
       } else {
@@ -33,17 +33,24 @@ export const AuthProvider = ({ children }) => {
     return null;
   };
 
-  // Seed the /api/auth/me cache directly (e.g. right after login already
-  // returned the user object), avoiding a redundant round-trip.
   const seedAuthCache = (authResponse) => {
-    setCache(AUTH_KEY, authResponse);
+    // If authResponse contains token, persist it
+    if (authResponse?.token) {
+      localStorage.setItem('astral_token', authResponse.token);
+    }
+    setCache(AUTH_KEY, { authenticated: true, user: authResponse });
+    setCurrentUser(authResponse);
   };
 
   useEffect(() => {
     checkAuth();
   }, []);
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await apiFetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    localStorage.removeItem('astral_token');
     document.cookie = 'session_id=; Secure; SameSite=None; Path=/; Max-Age=0';
     document.cookie = 'user_id=; Secure; SameSite=None; Path=/; Max-Age=0';
     invalidateCache(AUTH_KEY);
