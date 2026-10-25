@@ -150,6 +150,51 @@ body::after {
   padding-top: calc(var(--nav-h) + 32px);
 }
 
+.cookie-notice {
+  position: fixed;
+  z-index: 10000;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: min(620px, calc(100% - 40px));
+  padding: 16px 18px;
+  border: 1px solid var(--border-hover);
+  border-radius: var(--r-md);
+  background: rgba(10, 4, 6, 0.96);
+  box-shadow: var(--shadow-lift);
+  backdrop-filter: blur(18px);
+}
+
+.cookie-notice p {
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.cookie-notice a {
+  color: var(--gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cookie-notice button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .cookie-notice {
+    right: 12px;
+    bottom: 12px;
+    width: calc(100% - 24px);
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════
    ANIMATIONS
    ═══════════════════════════════════════════════════════════ */
@@ -1438,4 +1483,3 @@ html { scroll-behavior: smooth; }
   border-color: var(--gold);
   box-shadow: 0 6px 30px rgba(255, 215, 0, 0.25), 0 2px 10px rgba(200, 16, 46, 0.5);
 }
-

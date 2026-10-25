@@ -11,6 +11,18 @@ import { AuthPage } from './pages/AuthPage';
 import { ProfileModal } from './components/modals/ProfileModal';
 import { StaffModal } from './components/modals/StaffModal';
 
+function CookieNotice({ onAccept }) {
+  return (
+    <aside className="cookie-notice" role="dialog" aria-label="Cookie notice">
+      <p>
+        Astralyx Forums uses essential cookies to keep your account secure and remember your preferences.{' '}
+        <a href="https://astralyxpvp.org/privacy.html" target="_blank" rel="noopener noreferrer">Read our Privacy Policy</a>.
+      </p>
+      <button className="btn btn-primary btn-sm" type="button" onClick={onAccept}>Accept</button>
+    </aside>
+  );
+}
+
 export default function App() {
   const { currentUser, isStaff, logout, checkAuth } = useAuth();
   
@@ -25,6 +37,23 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showTop, setShowTop] = useState(false);
+  const [showCookieNotice, setShowCookieNotice] = useState(() => {
+    try {
+      return localStorage.getItem('astralyx-forums-cookie-notice') !== 'accepted';
+    } catch (error) {
+      console.error('Could not read cookie notice preference:', error);
+      return true;
+    }
+  });
+
+  const acceptCookieNotice = () => {
+    try {
+      localStorage.setItem('astralyx-forums-cookie-notice', 'accepted');
+    } catch (error) {
+      console.error('Could not save cookie notice preference:', error);
+    }
+    setShowCookieNotice(false);
+  };
 
   useEffect(() => {
     const onScroll = () => {
@@ -153,6 +182,7 @@ export default function App() {
             </button>
           </div>
         </header>
+        {showCookieNotice && <CookieNotice onAccept={acceptCookieNotice} />}
         <div className="container">
           <VerifyEmailPage />
         </div>
@@ -222,6 +252,7 @@ export default function App() {
           <span /><span /><span />
         </button>
       </header>
+      {showCookieNotice && <CookieNotice onAccept={acceptCookieNotice} />}
 
       {/* Mobile menu */}
       <div className={"mobile-menu" + (menuOpen ? " open" : "")}>
